@@ -6,7 +6,7 @@
         <div class="top-bar-info">
           <span>{{ currentTime }}</span>
           <img src="/src/assets/fall.bmp" alt="头像"
-               style="width:60px;height:60px;border-radius:50%;cursor:pointer;margin-left:16px;">
+               style="width:50px;height:50px;border-radius:50%;cursor:pointer;margin-left:16px;">
         </div>
       </div>
 
@@ -65,6 +65,8 @@ export default {
   methods: {
     handleRefresh() {
       // 刷新数据的逻辑
+      window.location.reload(); // 简单的刷新页面(暂定)
+      console.log('刷新数据');
     }
   }
   // 其他生命周期钩子和方法...
@@ -74,7 +76,8 @@ export default {
 import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
 
-const currentMenu = ref('dashboard')
+const currentTime = ref('')
+//const currentMenu = ref('dashboard')
 const onlineDevices = ref(28)
 const todayAlarms = ref(5)
 const deviceRate = ref(92)
@@ -84,9 +87,22 @@ const alarmList = ref([
   { time: '10:05', content: '302室 CO₂超标' }
 ])
 
-const currentTime = computed(() => {
+// const currentTime = computed(() => {
+//   const date = new Date()
+//   return (
+//     date.getFullYear() + '-' +
+//     (date.getMonth() + 1).toString().padStart(2, '0') + '-' +
+//     date.getDate().toString().padStart(2, '0') + ' ' +
+//     date.getHours().toString().padStart(2, '0') + ':' +
+//     date.getMinutes().toString().padStart(2, '0') + ':' +
+//     date.getSeconds().toString().padStart(2, '0')
+//   )
+// })
+
+// 定义更新时间的函数
+const updateTime = () => {
   const date = new Date()
-  return (
+  currentTime.value = (
     date.getFullYear() + '-' +
     (date.getMonth() + 1).toString().padStart(2, '0') + '-' +
     date.getDate().toString().padStart(2, '0') + ' ' +
@@ -94,10 +110,15 @@ const currentTime = computed(() => {
     date.getMinutes().toString().padStart(2, '0') + ':' +
     date.getSeconds().toString().padStart(2, '0')
   )
-})
+}
 
 const envChart = ref(null)
 onMounted(() => {
+  // 初始化时间
+  updateTime()
+  // 每秒更新时间
+  setInterval(updateTime, 1000)
+  // 初始化图表
   const myChart = echarts.init(envChart.value)
   myChart.setOption({
     xAxis: {
@@ -124,13 +145,14 @@ onMounted(() => {
       }
     ]
   })
+  // 窗口大小变化时，重置图表大小
   window.addEventListener('resize', () => {
     myChart.resize()
   })
 })
 
+// 刷新告警数据逻辑
 const handleRefresh = () => {
-  // 刷新告警数据逻辑
   console.log('刷新数据')
 }
 </script>
@@ -139,16 +161,16 @@ const handleRefresh = () => {
 .content-wrapper {
   width: 100%;
 }
-.body {
-  background: #f5f6fa;
-  margin: 0;
-  padding: 0;
-}
 .top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+}
+.top-bar h2 {
+  font-size: 18px;
+  font-weight: bold;
+  color: #222;
 }
 .top-bar-info {
   display: flex;
@@ -179,7 +201,7 @@ const handleRefresh = () => {
   background: #fff;
   color: #222;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: var(--card-shadow);
   padding: 16px;
   text-align: center;
 }
@@ -190,11 +212,23 @@ const handleRefresh = () => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   margin-bottom: 24px;
 }
-.alarm-item {
-  margin-bottom: 12px;
-  font-size: 15px;
+.stat-value {
+  font-size: 16px;
 }
-
+.alarm-item {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+.refresh-btn {
+  background: #000000;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 16px;
+}
 .bottom-section {
   display: flex;
   gap: 24px;
@@ -206,4 +240,4 @@ const handleRefresh = () => {
 .alarm-panel {
   flex: 3;
 }
-</style>s
+</style>

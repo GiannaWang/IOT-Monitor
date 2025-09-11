@@ -94,7 +94,7 @@ const alarmList = [
   background: #fff;
   color: #333;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: var(--card-shadow);
   padding: 24px;
 }
 .alarm-table table {

@@ -1,0 +1,6 @@
+:root {
+  --title-font-size: 20px;
+  --subtitle-font-size: 18px;
+  --text-font-size: 16px;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}

@@ -1,7 +1,7 @@
 <template>
   <div class="device-manage">
     <div class = "top-info">
-      <h2>物联网检测系统 / 设备管理</h2>
+      <h2>物联网监测系统 / 设备管理</h2>
       <div class="header-buttons">
         <el-button type="primary" plain @click="handleAdd">添加</el-button>
         <el-button type="primary" plain @click="handleDelete">删除</el-button>
@@ -185,7 +185,7 @@ const handleDetail = (row) => {
   background: #fff;
   color: #333;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--card-shadow);
   padding: 24px;
 }
 
