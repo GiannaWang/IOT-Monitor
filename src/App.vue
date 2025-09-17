@@ -10,12 +10,14 @@
           <li :class="{ active: currentMenu === 'dashboard' }" @click="currentMenu = 'dashboard'">首页仪表盘</li>
           <li :class="{ active: currentMenu === 'device' }" @click="currentMenu = 'device'">设备管理</li>
           <li :class="{ active: currentMenu === 'analysis' }" @click="currentMenu = 'analysis'">数据分析</li>
-          <li :class="{ active: currentMenu === 'alarm' }" @click="currentMenu = 'alarm'">告警中心</li>
+          <li :class="{ active: currentMenu === 'alarm' }" @click="currentMenu = 'alarm'">告警中心</li>   
         </ul>
       </nav>
-      <div class="sidebar-footer">
-        <p>管理员</p>
-      </div>
+      <nav class="sidebar-footer">
+        <ul>
+          <li :class="{ active: currentMenu === 'login' }" @click="currentMenu = 'login'">管理员</li>
+        </ul>
+      </nav>
     </aside>
 
     <!-- 主内容区：根据 currentMenu 显示不同组件 -->
@@ -24,6 +26,7 @@
       <DeviceManager v-if="currentMenu === 'device'" />
       <DataAnalysis v-if="currentMenu === 'analysis'" />
       <Alarmcentre v-if="currentMenu === 'alarm'" />
+      <LogIn v-if="currentMenu === 'login'" />
     </main>
   </div>
 </template>
@@ -32,6 +35,7 @@
 import { ref } from 'vue'
 import Dashboard from './components/Dashboard.vue'
 import Alarmcentre from './components/Alarmcentre.vue'
+import LogIn from './components/LogIn.vue'
 // 下面两个组件尚未实现
 import DeviceManager from './components/DeviceManager.vue'
 import DataAnalysis from './components/DataAnalysis.vue'
@@ -83,6 +87,7 @@ const currentMenu = ref('dashboard') // 默认显示首页仪表盘
   text-align: center;
   color: #cfd8dc;
   cursor: pointer;
+  
 }
 .sidebar-nav li.active,
 .sidebar-nav li:hover {
@@ -91,12 +96,30 @@ const currentMenu = ref('dashboard') // 默认显示首页仪表盘
   font-weight: bold;
 }
 .sidebar-footer {
-  text-align: center;
-  height: 40px;
-  padding: 16px 0;
   background: #22313f;
   color: #fff;
-  font-size: 14px;
-  margin-top: auto;
+  font-size: 16px;
+  margin-top: auto; /* 推到最底部 */
+  width: 100%; /* 确保宽度充满 */
+}
+.sidebar-footer ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%; /* 确保ul充满父容器 */
+}
+.sidebar-footer li {
+  padding: 20px 0;
+  text-align: center;
+  color: #cfd8dc;
+  cursor: pointer;
+  width: 100%; /* 让li充满整个宽度 */
+  box-sizing: border-box; /* 确保padding不会导致溢出 */
+}
+.sidebar-footer li.active,
+.sidebar-footer li:hover {
+  background: #263546;
+  color: #fff;
+  font-weight: bold;
 }
 </style>
