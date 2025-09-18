@@ -81,7 +81,7 @@ import { ref } from 'vue'
   margin: 0;
 }
 .sidebar-nav li {
-  padding: 16px 0;
+  padding: 0;
   text-align: center;
   color: #cfd8dc;
   cursor: pointer;
@@ -94,10 +94,11 @@ import { ref } from 'vue'
   font-weight: bold;
 }
 /* 让 router-link 占满整个 li 区域 */
-.nav-link {
+.sidebar .nav-link {
   display: block;
   width: 100%;
   height: 100%;
+  padding: 16px 0;
   color: inherit;         /* 继承父级颜色 */
   text-decoration: none;  /* 去掉下划线 */
 }
@@ -119,7 +120,7 @@ li:hover .nav-link {
   width: 100%;          /* 确保ul充满父容器 */
 }
 .sidebar-footer li {
-  padding: 20px 0;
+  padding: 0;
   text-align: center;
   color: #cfd8dc;
   cursor: pointer;
@@ -131,5 +132,13 @@ li:hover .nav-link {
   background: #263546;
   color: #fff;
   font-weight: bold;
+}
+.sidebar-footer .nav-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 20px 0;
+  color: inherit;         /* 继承父级颜色 */
+  text-decoration: none;  /* 去掉下划线 */
 }
 </style>
