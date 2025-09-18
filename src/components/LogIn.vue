@@ -5,12 +5,16 @@
         </div>
         <div class="right">
             <h2>登录</h2>
-            <form action="">
-                <div class="input-box">
-                    <input type="text" placeholder="用户名" />
+            <form @submit.prevent="handleLogin">
+                <div class="error-message" v-if="errorMessage">
+                  <span>{{ errorMessage }}</span>
+                  <button class="close-btn" @click="closeError">×</button>
                 </div>
                 <div class="input-box">
-                    <input type="password" placeholder="密码" />
+                    <input type="text" placeholder="用户名" v-model="username" />
+                </div>
+                <div class="input-box">
+                    <input type="password" placeholder="密码" v-model="password" />
                 </div>
                 <div class="btn-box">
                     <button type="submit">登 录</button>
@@ -26,7 +30,37 @@
 </template>
 
 <script setup>
-// 目前登录功能未实现
+import { ref } from 'vue';
+
+// 定义表单数据
+const username = ref('');
+const password = ref('');
+const errorMessage = ref('');
+
+// 处理登录逻辑
+const handleLogin = () => {
+  // 简单验证
+  if (!username.value || !password.value) {
+    errorMessage.value = '请输入用户名和密码';
+    return;
+  }
+  
+  // 这里可以添加实际的登录API调用
+  // 为了演示，使用简单的验证
+  if (username.value === 'admin' && password.value === 'admin123') {
+    // 登录成功
+    errorMessage.value = '';
+    alert('登录成功！');
+  } else {
+    errorMessage.value = '用户名或密码错误';
+  }
+};
+
+// 清空错误信息，提示框会因 v-if 隐藏
+const closeError = () => {
+  errorMessage.value = ''; 
+};
+
 </script>
 
 
@@ -88,7 +122,7 @@
   font-size: 1rem;
 }
 .main-box .right form .btn-box {
-  margin-top: 2.5rem;
+  margin-top: 2rem;
   width: 100%;
   height: 2.5rem;
 }
@@ -113,6 +147,25 @@
   color: #409eff;
   text-decoration: none;
   border-bottom: #899cff solid 1px;
+  cursor: pointer;
+}
+.error-message {
+  height: 2.5rem;
+  background-color: #ffd4d4aa;
+  border-radius: 5px;
+  border: #ff94949f solid 1px;
+  color: #e64c4c;                  /* 错误文字颜色 */
+  font-size: 0.9rem;
+  display: flex;                  /* 开启 Flex 布局 */
+  align-items: center;            /* 垂直居中 */
+  justify-content: space-between; /* 文字左、×右分布 */
+  padding: 0 1rem;                /* 左右内边距，避免内容贴边 */
+}
+.close-btn {
+  background: transparent;        
+  border: none;
+  color: #f56c6c;               
+  font-size: 1.5rem;
   cursor: pointer;
 }
 </style>
