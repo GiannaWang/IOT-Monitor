@@ -31,6 +31,10 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router'; // 导入路由钩子
+
+// 获取路由实例
+const router = useRouter();
 
 // 定义表单数据
 const username = ref('');
@@ -49,6 +53,9 @@ const handleLogin = () => {
   // 为了演示，使用简单的验证
   if (username.value === 'admin' && password.value === 'admin123') {
     // 登录成功
+    localStorage.setItem('username', username.value)
+    localStorage.setItem('isLoggedIn', 'true')
+    router.push('/admin')
     errorMessage.value = '';
     alert('登录成功！');
   } else {
