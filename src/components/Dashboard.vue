@@ -216,7 +216,7 @@ const handleRefresh = () => {
   font-size: 16px;
 }
 .alarm-item {
-  margin-top: 16px;
+  margin-top: 20px;
   margin-bottom: 16px;
   font-size: 16px;
 }
