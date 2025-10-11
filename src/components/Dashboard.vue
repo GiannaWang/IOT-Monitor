@@ -72,6 +72,7 @@ export default {
   // 其他生命周期钩子和方法...
 };
 </script>
+
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
