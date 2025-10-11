@@ -72,6 +72,7 @@ export default {
   // 其他生命周期钩子和方法...
 };
 </script>
+
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
@@ -216,7 +217,7 @@ const handleRefresh = () => {
   font-size: 16px;
 }
 .alarm-item {
-  margin-top: 16px;
+  margin-top: 20px;
   margin-bottom: 16px;
   font-size: 16px;
 }
