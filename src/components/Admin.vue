@@ -31,11 +31,11 @@
           <button class="close-button" @click="showPasswordModal = false">&times;</button>
         </div>
         <div class="modal-body">
-          <form @submit.prevent="submitPasswordChange" class="password-form">
+          <form @submit.prevent="submitPasswordChange" class="password-form" id="password-form">
             <div class="label-group">
-              <label for="currentPassword">当前密码:</label>
-              <label for="newPassword">新密码:</label>
-              <label for="confirmPassword">确认新密码:</label>
+              <label>当前密码:</label>
+              <label>新密码:</label>
+              <label>确认新密码:</label>
             </div>
             <div class="input-group">
               <input type="password" id="currentPassword" v-model="currentPassword" required>
@@ -43,7 +43,7 @@
               <input type="password" id="confirmPassword" v-model="confirmPassword" required>
             </div>
           </form>
-          <button type="submit" class="button">提交</button>
+          <button type="submit" class="button" form="password-form">提交</button>
         </div>
       </div>
     </div>
