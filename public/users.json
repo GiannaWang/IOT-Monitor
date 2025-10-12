@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password": "admin123",
+    "role": "超级管理员",
+    "avatar": "/src/assets/avatar/avatar1-1.jpg",
+    "lastLoginTime": "2024-10-12 08:30:00",
+    "room": "全部房间"
+  },
+  {
+    "id": 2,
+    "username": "user1",
+    "password": "user123",
+    "role": "房间管理员",
+    "avatar": "/src/assets/avatar/avatar2.bmp",
+    "lastLoginTime": "2024-10-11 15:45:00",
+    "room": "101号房间"
+  },
+  {
+    "id": 3,
+    "username": "user2",
+    "password": "user456",
+    "role": "房间管理员",
+    "avatar": "/src/assets/avatar/avatar3.bmp",
+    "lastLoginTime": "2024-10-10 10:20:00",
+    "room": "102号房间"
+  }
+]
+    

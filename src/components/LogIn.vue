@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router'; // 导入路由钩子
 
 // 获取路由实例
@@ -40,6 +40,29 @@ const router = useRouter();
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
+
+
+// 定义初始默认值（仅在本地存储为空时使用）
+const DEFAULT_USERNAME = 'admin';
+const DEFAULT_PASSWORD = 'admin123';
+
+onMounted(() => {
+  // 检查本地存储中是否已有值
+  const stored_Username = localStorage.getItem('username');
+  const stored_Password = localStorage.getItem('password');
+  
+  console.log('本地存储的用户名:', stored_Username);
+  console.log('本地存储的密码:', stored_Password);
+
+
+  // 如果本地存储为空，则设置初始值并保存
+  if (!stored_Username) {
+    localStorage.setItem('username', DEFAULT_USERNAME);
+  }
+  if (!stored_Password) {
+    localStorage.setItem('password', DEFAULT_PASSWORD);
+  }
+});
 
 // 处理登录逻辑
 const handleLogin = () => {
@@ -51,7 +74,7 @@ const handleLogin = () => {
   
   // 这里可以添加实际的登录API调用
   // 为了演示，使用简单的验证
-  if (username.value === 'admin' && password.value === 'admin123') {
+  if (username.value === localStorage.getItem('username') && password.value === localStorage.getItem('password')) {
     // 登录成功
     localStorage.setItem('username', username.value)
     localStorage.setItem('isLoggedIn', 'true')

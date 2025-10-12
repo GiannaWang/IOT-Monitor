@@ -2,12 +2,14 @@
   <div class="admin-container">
     <div class="main-content">
       <div class="profile-column">
-        <img src="/src/assets/fall.bmp" alt="Profile Picture" 
+        <img           
+          :src="selectedAvatar" 
+          alt="Profile Picture" 
           style="width:200px;height:200px;border-radius:50%;cursor:pointer;margin-right:16px;">
         <div class="user-info">
           <span style="font-size: 24px; font-weight: bold;">{{ username }}</span>
         </div>
-        <button class="profile-edit-button" @click="handleEdit">修改头像</button>
+        <button class="profile-edit-button" @click="showAvatarModal = true">修改头像</button>
       </div>
       <div class="content-column">
         <h1>{{ greeting }}, {{ username }}</h1>
@@ -15,11 +17,57 @@
         <p>您的上次登录时间为：{{ lastLoginTime }}</p>
         <p>您的管理员等级为：{{ userRole }}</p>
         <p>您负责的房间为：{{ userRoom }}</p>
-        
-        <button class="button" @click="handleKeywordChange">修改密码</button>
+
+        <button class="button" @click="showPasswordModal = true">修改密码</button>
         <button class="button" @click="handleLogout">退出登录</button>
       </div>
     </div>
+
+    <!-- 密码更改框 -->
+    <div class="modal-overlay" v-if="showPasswordModal" @click="showPasswordModal = false">
+      <div class="modal-container" @click.stop>
+        <div class="modal-header">
+          <h2>修改密码</h2>
+          <button class="close-button" @click="showPasswordModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="submitPasswordChange" class="password-form">
+            <div class="label-group">
+              <label for="currentPassword">当前密码:</label>
+              <label for="newPassword">新密码:</label>
+              <label for="confirmPassword">确认新密码:</label>
+            </div>
+            <div class="input-group">
+              <input type="password" id="currentPassword" v-model="currentPassword" required>
+              <input type="password" id="newPassword" v-model="newPassword" required>
+              <input type="password" id="confirmPassword" v-model="confirmPassword" required>
+            </div>
+          </form>
+          <button type="submit" class="button">提交</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 头像选择模态框 -->
+    <div class="modal-overlay" v-if="showAvatarModal" @click="showAvatarModal = false">
+      <div class="modal-container" @click.stop>
+        <div class="modal-header">
+          <h2>选择头像</h2>
+          <button class="close-button" @click="showAvatarModal = false">&times;</button>
+        </div>
+        <div class="avatar-grid">
+          <div 
+            class="avatar-item" 
+            v-for="(avatar, index) in availableAvatars" 
+            :key="index"
+            @click="selectAvatar(avatar)"
+          >
+            <img :src="avatar" :alt="`Avatar ${index + 1}`" class="avatar-thumbnail">
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -34,6 +82,52 @@ const currentTime = ref('')
 const userRole = ref('房间管理员') // 示例角色
 const userRoom = ref('101号房间') // 示例房间
 const lastLoginTime = ref('2024-06-01 10:00:00') // 示例上次登录时间
+
+// 头像相关状态
+const showAvatarModal = ref(false)
+// 假设assets文件夹中的头像图片列表，根据实际文件名修改
+const availableAvatars = ref([
+  '/src/assets/avatar/fall.bmp',
+  '/src/assets/avatar/avatar1-1.jpg',
+  '/src/assets/avatar/avatar2-1.jpg',
+  '/src/assets/avatar/avatar3-1.jpg',
+  '/src/assets/avatar/avatar4-1.jpg',
+  '/src/assets/avatar/avatar5-1.jpg'
+])
+
+// 默认头像
+const selectedAvatar = ref('/src/assets/avatar/fall.bmp') 
+
+// 密码修改相关状态
+const showPasswordModal = ref(false)
+
+// 密码输入框绑定
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+
+// 提交密码修改
+const submitPasswordChange = () => {
+  if (newPassword.value !== confirmPassword.value) {
+    alert('新密码和确认密码不匹配')
+    return
+  }
+  // 简单示例：实际应用中应调用后端API进行密码更新
+  const storedPassword = localStorage.getItem('password') // 默认密码
+  console.log('Stored Password:', storedPassword)
+  if (currentPassword.value !== storedPassword) {
+    alert('当前密码错误')
+    return
+  }
+  localStorage.setItem('password', newPassword.value)
+  alert('密码修改成功')
+  showPasswordModal.value = false
+  // 清空输入框
+  currentPassword.value = ''
+  newPassword.value = ''
+  confirmPassword.value = ''
+}
+
 
 const updateTime = () => {
   const date = new Date()
@@ -66,6 +160,12 @@ const loadUserInfo = () => {
   } else {
     username.value = '管理员' // 默认值
   }
+
+  // 检查是否有保存的头像
+  const storedAvatar = localStorage.getItem('userAvatar')
+  if (storedAvatar) {
+    selectedAvatar.value = storedAvatar
+  }
   greeting.value = getGreeting()
 }
 
@@ -74,6 +174,13 @@ const handleLogout = () => {
   localStorage.removeItem('isLoggedIn')
   localStorage.removeItem('username') // 清除用户名
   router.push('/login')
+}
+
+// 选择头像
+const selectAvatar = (avatar) => {
+  selectedAvatar.value = avatar
+  localStorage.setItem('userAvatar', avatar) // 保存选择的头像到本地存储
+  showAvatarModal.value = false // 关闭模态框
 }
 
 onMounted(() => {
@@ -85,10 +192,9 @@ onMounted(() => {
 
 <style scoped>  
 .admin-container {
-  padding: 20%;
+  padding: 5% 16%;
   background: #f5f6fa;
   color: #222;
-  padding-top: 5%;
 }
 .main-content {
   display: flex;
@@ -116,8 +222,10 @@ onMounted(() => {
   text-align: left;
 }
 .content-column {
-  flex: 1;
+  width: auto;
   text-align: left;
+  padding-bottom: 24px;
+  padding-right: 12px;
   /* background: #fff;
   border-radius: 8px;
   box-shadow: var(--card-shadow); */
@@ -143,4 +251,111 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
 }
-</style>
+
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-container {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+.modal-header {
+  padding: 8px 24px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+.close-button:hover {
+  color: #333;
+}
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  padding: 24px;
+}
+.avatar-item {
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.avatar-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.avatar-thumbnail {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.modal-body {
+  padding: 32px;
+}
+.password-form {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.label-group {
+  display: flex;
+  width: 100px; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  gap: 16px;
+}
+.label-group label {
+  height: 32px;
+  line-height: 32px;
+}
+.input-group {
+  display: flex;
+  width: 240px; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  gap: 16px;
+}
+.input-group input {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  box-sizing: border-box;
+  line-height: 1;
+}
+</style>  

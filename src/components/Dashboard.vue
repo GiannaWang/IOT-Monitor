@@ -5,8 +5,11 @@
         <h2>物联网监测系统 / 首页仪表盘</h2>
         <div class="top-bar-info">
           <span>{{ currentTime }}</span>
-          <img src="/src/assets/fall.bmp" alt="头像"
-               style="width:50px;height:50px;border-radius:50%;cursor:pointer;margin-left:16px;">
+          <img 
+            :src="selectedAvatar" 
+            alt="头像"
+            style="width:50px;height:50px;border-radius:50%;cursor:pointer;margin-left:16px;"
+            @click="$router.push('/admin')">
         </div>
       </div>
 
@@ -78,6 +81,7 @@ import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
 
 const currentTime = ref('')
+const selectedAvatar = localStorage.getItem("isLoggedIn") ? localStorage.getItem('userAvatar') : ref('/src/assets/avatar/default.jpg');
 //const currentMenu = ref('dashboard')
 const onlineDevices = ref(28)
 const todayAlarms = ref(5)
@@ -210,7 +214,7 @@ const handleRefresh = () => {
   height: 300px;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  /* box-shadow: 0 2px 8px rgba(0,0,0,0.05); */
   margin-bottom: 24px;
 }
 .stat-value {
