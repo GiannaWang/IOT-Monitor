@@ -73,15 +73,16 @@
 // 1. 导入依赖（统一放在顶部）
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import testData from '../../public/test_data_120.json'
+
 
 // 2. 响应式变量声明
 const selectedPeriod = ref('')    // 周期筛选
 const selectedTime = ref('')      // 时间段筛选
 const activeTab = ref('humiture') // 当前激活的Tab
-const selectedRoom = ref('120')   // 房间筛选
+const selectedRoom = ref('')      // 房间筛选
 const chartRefs = ref({})         // 图表容器引用集合
 const chartInstances = ref({})    // 图表实例集合
+const roomDataCache = ref({})     // 房间数据缓存
 
 // 房间数据配置
 const rooms = [
@@ -128,8 +129,25 @@ const getFilterDescription = computed(() => {
   return `${periodMap[selectedPeriod.value]} | ${timeMap[selectedTime.value]} | ${roomMap[selectedRoom.value]}`
 })
 
-// 4. 图表初始化/更新（修改数据部分）
-const initOrUpdateCharts = (forceResize = false) => {
+// 4. 动态加载房间数据的函数
+const loadRoomData = async (roomId) => {
+  // 模拟异步数据加载
+  if (roomDataCache.value[roomId]) {
+    return roomDataCache.value[roomId]
+  }
+  try {
+    const response = await fetch(`/test_data_${roomId}.json`)
+    if (!response.ok) throw new Error('网络响应失败')
+    const data = await response.json()
+    roomDataCache.value[roomId] = data
+    return data
+  } catch (error) {
+    console.error('加载数据失败:', error)
+  }
+}
+
+// 5. 图表初始化/更新（修改数据部分）
+const initOrUpdateCharts = async (forceResize = false) => {
   // 先销毁所有现有图表
   Object.values(chartInstances.value).forEach(instance => {
     instance.dispose()
@@ -137,34 +155,20 @@ const initOrUpdateCharts = (forceResize = false) => {
   chartInstances.value = {}
   
   // 为每个需要显示的房间创建图表
-  displayRooms.value.forEach(room => {
+  for (const room of displayRooms.value) {
     const container = chartRefs.value[room.value]?.querySelector('.chart-inner')
-    if (!container) return
+    if (!container) continue
+
+    const roomData = await loadRoomData(room.value)
     
     // 创建图表实例
     const chart = echarts.init(container)
     chartInstances.value[room.value] = chart
     
-    // 声明数据变量
-    let tempData, humidityData, xAxisData
-    
-    // 如果是120教室，使用test_data中的真实数据
-    if (room.value === '120') {
-      // 提取日期作为x轴数据
-      xAxisData = testData.dailyRecords.map(item => item.date)
-      // 提取温度数据
-      tempData = testData.dailyRecords.map(item => item.temperature.avg)
-      // 提取湿度数据
-      humidityData = testData.dailyRecords.map(item => item.humidity.avg)
-    } else {
-      // 其他房间仍使用模拟数据
-      const baseTemp = 22 + Math.floor(Math.random() * 4)
-      const baseHumidity = 50 + Math.floor(Math.random() * 10)
-      tempData = Array.from({length: 7}, () => baseTemp + (Math.random() * 4 - 2))
-      humidityData = Array.from({length: 7}, () => baseHumidity + (Math.random() * 10 - 5))
-      xAxisData = ['8/25', '8/26', '8/27', '8/28', '8/29', '8/30', '8/31']
-    }
-    
+    const xAxisData = roomData.dailyRecords.map(record => record.date)
+    const tempData = roomData.dailyRecords.map(record => record.temperature.avg)  
+    const humidityData = roomData.dailyRecords.map(record => record.humidity.avg)
+
     // 设置图表配置
     chart.setOption({
       legend: {
@@ -179,13 +183,13 @@ const initOrUpdateCharts = (forceResize = false) => {
       yAxis: [
         {
           type: 'value',
-          name: `温度 (${testData.unit.temperature})`, // 使用数据中的单位
+          name: `温度 (${roomData.unit.temperature})`, // 使用数据中的单位
           min: 18,
           max: 30
         },
         {
           type: 'value',
-          name: `湿度 (${testData.unit.humidity})`, // 使用数据中的单位
+          name: `湿度 (${roomData.unit.humidity})`, // 使用数据中的单位
           min: 30,
           max: 70,
           position: 'right'
@@ -213,14 +217,14 @@ const initOrUpdateCharts = (forceResize = false) => {
     if (forceResize) {
       chart.resize()
     }
-  })
+  }
 }
 
 // 5. 事件处理函数
 const handleRoomChange = () => {
   // 房间改变后重新渲染图表
-  nextTick(() => {
-    initOrUpdateCharts(true)
+  nextTick(async () => {
+    await initOrUpdateCharts(true)
   })
 }
 
@@ -228,8 +232,9 @@ const handleTabClick = (tab) => {
   console.log('当前选中的Tab:', tab.name)
   if (tab.name === 'humiture') {
     // 等待Tab切换完成再渲染图表
-    nextTick(() => {
-      setTimeout(() => initOrUpdateCharts(true), 100)
+    nextTick(async() => {
+      setTimeout(async () => 
+        await initOrUpdateCharts(true), 100)
     })
   }
 }
@@ -239,11 +244,9 @@ const exportData = () => {
 }
 
 // 6. 生命周期钩子
-onMounted(() => {
-  // 初始化图表
-  nextTick(() => {
-    initOrUpdateCharts()
-  })
+onMounted(async () => {
+  await nextTick()
+  await initOrUpdateCharts()
   
   // 窗口大小改变时重绘图表
   const resizeHandler = () => {
@@ -267,22 +270,17 @@ onMounted(() => {
 <style scoped>
 .content-wrapper {
   width: 100%;
-  padding: 20px;
-  box-sizing: border-box;
 }
 .analysis-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
 }
 .analysis-header h2 {
   font-size: 18px;
   font-weight: bold;
   color: #222;
-  margin: 0;
 }
 .analysis-filters {
   display: flex;

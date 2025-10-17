@@ -174,6 +174,11 @@ function markAsDone(item) {
   font-weight: bold;
   color: #222;
 }
+.alarm-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .alarm-filters select {
   margin-right: 12px;
   padding: 6px 12px;
