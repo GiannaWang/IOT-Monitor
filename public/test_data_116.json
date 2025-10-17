@@ -1,0 +1,143 @@
+{
+  "dataType": "temperature_humidity",
+  "timeRange": {
+    "startDate": "2024-10-01",
+    "endDate": "2024-10-07"
+  },
+  "unit": {
+    "temperature": "℃",
+    "humidity": "%RH"
+  },
+  "deviceInfo": {
+    "deviceId": "TH-2024002",
+    "location": "B116教室"
+  },
+  "dailyRecords": [
+    {
+      "date": "2024-10-01",
+      "temperature": {
+        "avg": 22.3,
+        "max": 26.5,
+        "min": 19.8,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 52.1,
+        "max": 58.3,
+        "min": 47.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "假期无人，门窗关闭"
+    },
+    {
+      "date": "2024-10-02",
+      "temperature": {
+        "avg": 21.9,
+        "max": 25.8,
+        "min": 19.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 53.5,
+        "max": 59.0,
+        "min": 48.2,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-03",
+      "temperature": {
+        "avg": 23.0,
+        "max": 27.2,
+        "min": 20.1,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 51.8,
+        "max": 57.5,
+        "min": 46.8,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-04",
+      "temperature": {
+        "avg": 0,
+        "max": 0,
+        "min": 0,
+        "status": "abnormal",
+        "abnormalReason": "设备断电，数据丢失"
+      },
+      "humidity": {
+        "avg": 0,
+        "max": 0,
+        "min": 0,
+        "status": "abnormal",
+        "abnormalReason": "设备断电，数据丢失"
+      },
+      "remark": "电路检修导致断电"
+    },
+    {
+      "date": "2024-10-05",
+      "temperature": {
+        "avg": 22.7,
+        "max": 26.9,
+        "min": 19.9,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 54.2,
+        "max": 60.1,
+        "min": 49.3,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-06",
+      "temperature": {
+        "avg": 23.5,
+        "max": 28.0,
+        "min": 20.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 52.6,
+        "max": 58.8,
+        "min": 47.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "午后阳光直射，温度略升"
+    },
+    {
+      "date": "2024-10-07",
+      "temperature": {
+        "avg": 22.9,
+        "max": 27.3,
+        "min": 20.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 53.1,
+        "max": 59.2,
+        "min": 48.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    }
+  ]
+}

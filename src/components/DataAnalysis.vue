@@ -73,6 +73,7 @@
 // 1. 导入依赖（统一放在顶部）
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import testData from '../../public/test_data_120.json'
 
 // 2. 响应式变量声明
 const selectedPeriod = ref('')    // 周期筛选
@@ -127,7 +128,7 @@ const getFilterDescription = computed(() => {
   return `${periodMap[selectedPeriod.value]} | ${timeMap[selectedTime.value]} | ${roomMap[selectedRoom.value]}`
 })
 
-// 4. 图表初始化/更新
+// 4. 图表初始化/更新（修改数据部分）
 const initOrUpdateCharts = (forceResize = false) => {
   // 先销毁所有现有图表
   Object.values(chartInstances.value).forEach(instance => {
@@ -144,11 +145,25 @@ const initOrUpdateCharts = (forceResize = false) => {
     const chart = echarts.init(container)
     chartInstances.value[room.value] = chart
     
-    // 为不同房间生成略有差异的模拟数据，方便区分
-    const baseTemp = 22 + Math.floor(Math.random() * 4)
-    const baseHumidity = 50 + Math.floor(Math.random() * 10)
-    const tempData = Array.from({length: 7}, () => baseTemp + (Math.random() * 4 - 2))
-    const humidityData = Array.from({length: 7}, () => baseHumidity + (Math.random() * 10 - 5))
+    // 声明数据变量
+    let tempData, humidityData, xAxisData
+    
+    // 如果是120教室，使用test_data中的真实数据
+    if (room.value === '120') {
+      // 提取日期作为x轴数据
+      xAxisData = testData.dailyRecords.map(item => item.date)
+      // 提取温度数据
+      tempData = testData.dailyRecords.map(item => item.temperature.avg)
+      // 提取湿度数据
+      humidityData = testData.dailyRecords.map(item => item.humidity.avg)
+    } else {
+      // 其他房间仍使用模拟数据
+      const baseTemp = 22 + Math.floor(Math.random() * 4)
+      const baseHumidity = 50 + Math.floor(Math.random() * 10)
+      tempData = Array.from({length: 7}, () => baseTemp + (Math.random() * 4 - 2))
+      humidityData = Array.from({length: 7}, () => baseHumidity + (Math.random() * 10 - 5))
+      xAxisData = ['8/25', '8/26', '8/27', '8/28', '8/29', '8/30', '8/31']
+    }
     
     // 设置图表配置
     chart.setOption({
@@ -159,18 +174,18 @@ const initOrUpdateCharts = (forceResize = false) => {
       },
       xAxis: {
         type: 'category',
-        data: ['8/25', '8/26', '8/27', '8/28', '8/29', '8/30', '8/31']
+        data: xAxisData // 使用处理后的x轴数据
       },
       yAxis: [
         {
           type: 'value',
-          name: '温度 (°C)',
+          name: `温度 (${testData.unit.temperature})`, // 使用数据中的单位
           min: 18,
           max: 30
         },
         {
           type: 'value',
-          name: '湿度 (%)',
+          name: `湿度 (${testData.unit.humidity})`, // 使用数据中的单位
           min: 30,
           max: 70,
           position: 'right'

@@ -1,0 +1,143 @@
+{
+  "dataType": "temperature_humidity",
+  "timeRange": {
+    "startDate": "2024-10-01",
+    "endDate": "2024-10-07"
+  },
+  "unit": {
+    "temperature": "℃",
+    "humidity": "%RH"
+  },
+  "deviceInfo": {
+    "deviceId": "TH-2024001",
+    "location": "客厅"
+  },
+  "dailyRecords": [
+    {
+      "date": "2024-10-01",
+      "temperature": {
+        "avg": 23.5,
+        "max": 28.1,
+        "min": 20.3,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 55.2,
+        "max": 62.0,
+        "min": 48.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "国庆当天开窗通风，湿度波动略大"
+    },
+    {
+      "date": "2024-10-02",
+      "temperature": {
+        "avg": 22.8,
+        "max": 27.5,
+        "min": 19.8,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 58.0,
+        "max": 65.3,
+        "min": 51.2,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-03",
+      "temperature": {
+        "avg": 0,
+        "max": 0,
+        "min": 0,
+        "status": "abnormal",
+        "abnormalReason": "传感器离线2小时，数据缺失"
+      },
+      "humidity": {
+        "avg": 0,
+        "max": 0,
+        "min": 0,
+        "status": "abnormal",
+        "abnormalReason": "传感器离线2小时，数据缺失"
+      },
+      "remark": "联系维修人员更换传感器电池"
+    },
+    {
+      "date": "2024-10-04",
+      "temperature": {
+        "avg": 23.0,
+        "max": 28.3,
+        "min": 20.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 54.5,
+        "max": 60.0,
+        "min": 49.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-05",
+      "temperature": {
+        "avg": 24.5,
+        "max": 30.0,
+        "min": 21.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 53.0,
+        "max": 58.5,
+        "min": 47.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-06",
+      "temperature": {
+        "avg": 25.2,
+        "max": 31.0,
+        "min": 22.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 51.5,
+        "max": 57.0,
+        "min": 46.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-07",
+      "temperature": {
+        "avg": 24.1,
+        "max": 29.0,
+        "min": 21.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 52.8,
+        "max": 59.5,
+        "min": 46.3,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "周日室内开空调，温度略高"
+    }
+  ]
+}

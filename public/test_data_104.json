@@ -1,0 +1,143 @@
+{
+  "dataType": "temperature_humidity",
+  "timeRange": {
+    "startDate": "2024-10-01",
+    "endDate": "2024-10-07"
+  },
+  "unit": {
+    "temperature": "℃",
+    "humidity": "%RH"
+  },
+  "deviceInfo": {
+    "deviceId": "TH-2024004",
+    "location": "B104教室"
+  },
+  "dailyRecords": [
+    {
+      "date": "2024-10-01",
+      "temperature": {
+        "avg": 21.5,
+        "max": 25.3,
+        "min": 19.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 56.8,
+        "max": 63.2,
+        "min": 51.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "朝北教室，温度较低"
+    },
+    {
+      "date": "2024-10-02",
+      "temperature": {
+        "avg": 21.2,
+        "max": 24.9,
+        "min": 18.8,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 57.5,
+        "max": 64.0,
+        "min": 52.3,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-03",
+      "temperature": {
+        "avg": 21.8,
+        "max": 25.7,
+        "min": 19.2,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 56.2,
+        "max": 62.5,
+        "min": 50.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    },
+    {
+      "date": "2024-10-04",
+      "temperature": {
+        "avg": 21.0,
+        "max": 24.5,
+        "min": 18.5,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 58.0,
+        "max": 65.0,
+        "min": 53.1,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "雨天，湿度上升"
+    },
+    {
+      "date": "2024-10-05",
+      "temperature": {
+        "avg": 20.7,
+        "max": 24.2,
+        "min": 18.2,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 59.3,
+        "max": 66.5,
+        "min": 54.0,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "持续降雨，湿度偏高"
+    },
+    {
+      "date": "2024-10-06",
+      "temperature": {
+        "avg": 21.3,
+        "max": 25.0,
+        "min": 18.9,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 57.1,
+        "max": 63.8,
+        "min": 51.8,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": "天气转晴，湿度下降"
+    },
+    {
+      "date": "2024-10-07",
+      "temperature": {
+        "avg": 21.9,
+        "max": 25.8,
+        "min": 19.3,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "humidity": {
+        "avg": 55.9,
+        "max": 62.1,
+        "min": 50.2,
+        "status": "normal",
+        "abnormalReason": ""
+      },
+      "remark": ""
+    }
+  ]
+}
