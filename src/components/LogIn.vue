@@ -32,6 +32,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router'; // 导入路由钩子
+import userService from '../utils/userService';
 
 // 获取路由实例
 const router = useRouter();
@@ -40,6 +41,7 @@ const router = useRouter();
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
+const isLoading = ref(false);
 
 
 // 定义初始默认值（仅在本地存储为空时使用）
@@ -65,24 +67,32 @@ onMounted(() => {
 });
 
 // 处理登录逻辑
-const handleLogin = () => {
+const handleLogin = async () => {
   // 简单验证
   if (!username.value || !password.value) {
     errorMessage.value = '请输入用户名和密码';
     return;
   }
   
-  // 这里可以添加实际的登录API调用
-  // 为了演示，使用简单的验证
-  if (username.value === localStorage.getItem('username') && password.value === localStorage.getItem('password')) {
-    // 登录成功
-    localStorage.setItem('username', username.value)
-    localStorage.setItem('isLoggedIn', 'true')
-    router.push('/admin')
+  try {
+    isLoading.value = true;
     errorMessage.value = '';
-    alert('登录成功！');
-  } else {
-    errorMessage.value = '用户名或密码错误';
+
+    // 调用登录API
+    const user = await userService.login(username.value, password.value);
+  
+    if(user) {
+      // 登录成功，保存用户信息到本地存储
+      localStorage.setItem('user',JSON.stringify(user));
+      localStorage.setItem('isLoggedIn','true'); 
+      alert('登录成功！');
+      // 重定向到首页
+      router.push('/admin');
+    }
+  } catch (error) {
+    errorMessage.value = '登录失败，请重试';
+  } finally {
+    isLoading.value = false;
   }
 };
 

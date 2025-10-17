@@ -14,9 +14,9 @@
       <div class="content-column">
         <h1>{{ greeting }}, {{ username }}</h1>
         <h3>现在是：{{ currentTime }}</h3>
-        <p>您的上次登录时间为：{{ lastLoginTime }}</p>
-        <p>您的管理员等级为：{{ userRole }}</p>
-        <p>您负责的房间为：{{ userRoom }}</p>
+        <p>您的上次登录时间为：{{ userInfo?.lastLoginTime || '暂无记录' }}</p>
+        <p>您的管理员等级为：{{ userInfo?.role }}</p>
+        <p>您负责的房间为：{{ userInfo?.room }}</p>
 
         <button class="button" @click="showPasswordModal = true">修改密码</button>
         <button class="button" @click="handleLogout">退出登录</button>
@@ -74,14 +74,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import userService from '../utils/userService'
 
 const router = useRouter()
+const userInfo = ref(null)
 const username = ref('')
-const greeting = ref('')
 const currentTime = ref('')
 const userRole = ref('房间管理员') // 示例角色
 const userRoom = ref('101号房间') // 示例房间
 const lastLoginTime = ref('2024-06-01 10:00:00') // 示例上次登录时间
+const greeting = ref('')
 
 // 头像相关状态
 const showAvatarModal = ref(false)
@@ -96,36 +98,49 @@ const availableAvatars = ref([
 ])
 
 // 默认头像
-const selectedAvatar = ref('/src/assets/avatar/fall.bmp') 
+const selectedAvatar = ref('') 
 
 // 密码修改相关状态
 const showPasswordModal = ref(false)
-
-// 密码输入框绑定
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 
 // 提交密码修改
-const submitPasswordChange = () => {
+const submitPasswordChange = async () => {
+  if(!userInfo.value) return 
+  
+    // 前端基础验证
   if (newPassword.value !== confirmPassword.value) {
     alert('新密码和确认密码不匹配')
     return
   }
-  // 简单示例：实际应用中应调用后端API进行密码更新
-  const storedPassword = localStorage.getItem('password') // 默认密码
-  console.log('Stored Password:', storedPassword)
-  if (currentPassword.value !== storedPassword) {
-    alert('当前密码错误')
+  if (newPassword.value.length < 6) {
+    alert('新密码长度不能少于6位')
     return
   }
-  localStorage.setItem('password', newPassword.value)
-  alert('密码修改成功')
-  showPasswordModal.value = false
-  // 清空输入框
-  currentPassword.value = ''
-  newPassword.value = ''
-  confirmPassword.value = ''
+  try {
+    // 调用userService修改密码
+    const result = await userService.changePassword(
+      userInfo.value.id,
+      currentPassword.value,
+      newPassword.value
+    )
+
+    if(result.success) {
+      alert(result.message)
+      showPasswordModal.value = false
+      // 清空密码输入框
+      currentPassword.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
+    } else {
+      alert(result.message) // 显示错误信息
+    }
+  } catch (err) {
+    console.error('修改密码失败:', err)
+    alert('修改密码失败，请重试')
+  }
 }
 
 
@@ -153,18 +168,32 @@ const getGreeting = () => {
 }
 
 // 获取用户名
-const loadUserInfo = () => {
+const loadUserInfo = async () => {
   const storedName = localStorage.getItem('username')
-  if (storedName) {
-    username.value = storedName
-  } else {
-    username.value = '管理员' // 默认值
+  if (!storedName) {
+    router.push('/login')
+    return
   }
 
-  // 检查是否有保存的头像
-  const storedAvatar = localStorage.getItem('userAvatar')
-  if (storedAvatar) {
-    selectedAvatar.value = storedAvatar
+  try {
+    //
+    const user = await userService.getUserByUsername(storedName)
+    if(user) {
+      userInfo.value = user
+      username.value = user.username 
+      selectedAvatar.value = user.avatar || '/src/assets/avatar/fall.bmp' // 默认头像
+      lastLoginTime.value = user.lastLoginTime || '首次登录'
+      userRole.value = user.role || '房间管理员'
+      userRoom.value = user.room || '101号房间'
+    } else {
+      alert('用户信息加载失败，请联系管理员')
+      router.push('/login')
+    }
+  }
+  catch (err) {
+    console.error('加载用户信息失败:', err)
+    alert('用户信息加载失败，请联系管理员')
+    router.push('/login')
   }
   greeting.value = getGreeting()
 }
@@ -177,12 +206,29 @@ const handleLogout = () => {
 }
 
 // 选择头像
-const selectAvatar = (avatar) => {
-  selectedAvatar.value = avatar
-  localStorage.setItem('userAvatar', avatar) // 保存选择的头像到本地存储
-  showAvatarModal.value = false // 关闭模态框
+const selectAvatar = async (avatar) => {
+  if(!userInfo.value) return
+
+  try {
+    // 更新用户头像信息
+    const success = await userService.updateUserAvatar(userInfo.value.id, avatar)
+    if(success) {
+      selectedAvatar.value = avatar
+      userInfo.value.avatar = avatar
+      localStorage.setItem('userAvatar', avatar) // 可选：本地存储头像信息
+      alert('头像更新成功')
+    } else {
+        alert('头像更新失败')
+    }
+  } catch (err) {
+    console.error('更新头像失败:', err)
+    alert('头像更新失败，请重试')
+  }
+
+  showAvatarModal.value = false
 }
 
+// 组件挂载时加载用户信息和更新时间
 onMounted(() => {
   loadUserInfo()
   updateTime()

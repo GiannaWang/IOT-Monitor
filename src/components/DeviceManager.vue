@@ -176,7 +176,7 @@ const handleDetail = (row) => {
   align-items: center;
   margin-bottom: 24px;
 }
-.top-info h2{
+.top-info h2 {
   font-size: 18px;
   font-weight: bold;
   color: #222;

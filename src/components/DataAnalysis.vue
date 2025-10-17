@@ -324,7 +324,7 @@ onMounted(async () => {
   color: #333;
   border-radius: 12px;
   box-shadow: var(--card-shadow);
-  padding: 16px;
+  padding: 24px;
   min-height: 450px;
 }
 .chart-container {

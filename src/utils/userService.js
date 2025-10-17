@@ -1,5 +1,5 @@
 // 用户数据服务
-import usersData from '../../public/users.json'
+import usersData from '../data/users.json'
 
 // 可选：模拟API延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
