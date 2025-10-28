@@ -33,6 +33,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router'; // 导入路由钩子
 import userService from '../utils/userService';
+import { ElMessage } from 'element-plus';
 
 // 获取路由实例
 const router = useRouter();
@@ -43,32 +44,11 @@ const password = ref('');
 const errorMessage = ref('');
 const isLoading = ref(false);
 
-
-// 定义初始默认值（仅在本地存储为空时使用）
-const DEFAULT_USERNAME = 'admin';
-const DEFAULT_PASSWORD = 'admin123';
-
 onMounted(() => {
-  // 检查本地存储中是否已有值
-  const stored_Username = localStorage.getItem('username');
-  const stored_Password = localStorage.getItem('password');
-  
-  console.log('本地存储的用户名:', stored_Username);
-  console.log('本地存储的密码:', stored_Password);
-
-
-  // 如果本地存储为空，则设置初始值并保存
-  if (!stored_Username) {
-    localStorage.setItem('username', DEFAULT_USERNAME);
-  }
-  if (!stored_Password) {
-    localStorage.setItem('password', DEFAULT_PASSWORD);
-  }
 });
 
 // 处理登录逻辑
 const handleLogin = async () => {
-  // 简单验证
   if (!username.value || !password.value) {
     errorMessage.value = '请输入用户名和密码';
     return;
@@ -79,15 +59,24 @@ const handleLogin = async () => {
     errorMessage.value = '';
 
     // 调用登录API
-    const user = await userService.login(username.value, password.value);
+    const response = await userService.login(username.value, password.value);
   
-    if(user) {
-      // 登录成功，保存用户信息到本地存储
-      localStorage.setItem('user',JSON.stringify(user));
-      localStorage.setItem('isLoggedIn','true'); 
-      alert('登录成功！');
-      // 重定向到首页
-      router.push('/admin');
+    if(response.code === 200) {
+      // 登录成功，保存登录状态和用户信息
+      const dbUser = response.data;
+      console.log('从后端获取的用户数据:', dbUser);
+
+      if(password.value === dbUser.passwordHash) {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('user', JSON.stringify(dbUser));
+        userService.updateUserLoginTime(dbUser.userId); // 设置当前用户
+        ElMessage.success('登录成功！');
+        router.push('/dashboard'); // 重定向到仪表盘页面
+      } else {
+        errorMessage.value = '用户名或密码错误';
+      }
+    } else {
+      errorMessage.value = response.errorMessage || '登录失败，请重试';
     }
   } catch (error) {
     errorMessage.value = '登录失败，请重试';

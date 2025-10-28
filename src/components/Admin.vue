@@ -1,5 +1,6 @@
 <template>
   <div class="admin-container">
+    <!-- 主内容区 -->
     <div class="main-content">
       <div class="profile-column">
         <img           
@@ -38,9 +39,27 @@
               <label>确认新密码:</label>
             </div>
             <div class="input-group">
-              <input type="password" id="currentPassword" v-model="currentPassword" required>
-              <input type="password" id="newPassword" v-model="newPassword" required>
-              <input type="password" id="confirmPassword" v-model="confirmPassword" required>
+              <input  
+                type="password" 
+                id="currentPassword" 
+                v-model="currentPassword" 
+                required
+                autocomplete="new-password"   
+              >
+              <input 
+                type="password" 
+                id="newPassword" 
+                v-model="newPassword" 
+                required
+                autocomplete="new-password"
+              >
+              <input 
+                type="password" 
+                id="confirmPassword" 
+                v-model="confirmPassword" 
+                required
+                autocomplete="new-password"
+              >
             </div>
           </form>
           <button type="submit" class="button" form="password-form">提交</button>
@@ -75,6 +94,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import userService from '../utils/userService'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userInfo = ref(null)
@@ -87,7 +107,8 @@ const greeting = ref('')
 
 // 头像相关状态
 const showAvatarModal = ref(false)
-// 假设assets文件夹中的头像图片列表，根据实际文件名修改
+
+// assets文件夹中的头像图片列表
 const availableAvatars = ref([
   '/src/assets/avatar/fall.bmp',
   '/src/assets/avatar/avatar1-1.jpg',
@@ -110,40 +131,40 @@ const confirmPassword = ref('')
 const submitPasswordChange = async () => {
   if(!userInfo.value) return 
   
-    // 前端基础验证
+  // 前端基础验证
   if (newPassword.value !== confirmPassword.value) {
-    alert('新密码和确认密码不匹配')
+    ElMessage.error('新密码和确认密码不匹配')
     return
   }
   if (newPassword.value.length < 6) {
-    alert('新密码长度不能少于6位')
+    ElMessage.error('新密码长度不能少于6位')
     return
   }
   try {
     // 调用userService修改密码
     const result = await userService.changePassword(
-      userInfo.value.id,
+      userInfo.value.userId,
       currentPassword.value,
       newPassword.value
     )
 
-    if(result.success) {
-      alert(result.message)
+    if(result === true) {
+      ElMessage.success('密码修改成功')
       showPasswordModal.value = false
       // 清空密码输入框
       currentPassword.value = ''
       newPassword.value = ''
       confirmPassword.value = ''
     } else {
-      alert(result.message) // 显示错误信息
+      ElMessage.error(result)
     }
   } catch (err) {
     console.error('修改密码失败:', err)
-    alert('修改密码失败，请重试')
+    ElMessage.error('修改密码发生错误，请联系管理员')
   }
 }
 
-
+// 更新时间函数
 const updateTime = () => {
   const date = new Date()
   currentTime.value = (
@@ -169,39 +190,39 @@ const getGreeting = () => {
 
 // 获取用户名
 const loadUserInfo = async () => {
-  const storedName = localStorage.getItem('username')
-  if (!storedName) {
-    router.push('/login')
-    return
+  // 1. 获取本地存储的用户信息和登录状态
+  const storedUserStr = localStorage.getItem('user');
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+  // 2. 未登录或无用户信息 → 跳转到登录页
+  if (!isLoggedIn || !storedUserStr) {
+    router.push('/login');
+    return;
   }
 
-  try {
-    //
-    const user = await userService.getUserByUsername(storedName)
-    if(user) {
-      userInfo.value = user
-      username.value = user.username 
-      selectedAvatar.value = user.avatar || '/src/assets/avatar/fall.bmp' // 默认头像
-      lastLoginTime.value = user.lastLoginTime || '首次登录'
-      userRole.value = user.role || '房间管理员'
-      userRoom.value = user.room || '101号房间'
-    } else {
-      alert('用户信息加载失败，请联系管理员')
-      router.push('/login')
-    }
-  }
-  catch (err) {
-    console.error('加载用户信息失败:', err)
-    alert('用户信息加载失败，请联系管理员')
-    router.push('/login')
-  }
-  greeting.value = getGreeting()
+  // 3. 解析本地存储的用户信息（JSON字符串转对象）
+  const user = JSON.parse(storedUserStr);
+  userInfo.value = user;
+
+  // 4. 渲染页面数据（字段与后端返回一致）
+  username.value = user.username || '';
+  // 头像：优先用用户信息中的，没有则用默认图
+  selectedAvatar.value = user.avatar || '/src/assets/avatar/fall.bmp';
+  // 最后登录时间：后端返回则用，没有则显示首次登录
+  lastLoginTime.value = user.lastLoginTime || '首次登录';
+  // 角色：后端返回则用，没有则用默认
+  userRole.value = user.role || '房间管理员';
+  // 房间：后端返回则用，没有则用默认
+  userRoom.value = user.room || '101号房间';
+
+  // 设置问候语
+  greeting.value = getGreeting();
 }
 
 // 退出登录
 const handleLogout = () => {
   localStorage.removeItem('isLoggedIn')
-  localStorage.removeItem('username') // 清除用户名
+  localStorage.removeItem('user') // 清除用户
   router.push('/login')
 }
 
@@ -211,20 +232,17 @@ const selectAvatar = async (avatar) => {
 
   try {
     // 更新用户头像信息
-    const success = await userService.updateUserAvatar(userInfo.value.id, avatar)
-    if(success) {
-      selectedAvatar.value = avatar
-      userInfo.value.avatar = avatar
-      localStorage.setItem('userAvatar', avatar) // 可选：本地存储头像信息
-      alert('头像更新成功')
+    const result = await userService.updateUserAvatar(userInfo.value.userId, avatar)
+    if(result === true) {
+      selectedAvatar.value = avatar  // 更新本地存储的用户信息
+      ElMessage.success('头像更新成功')
     } else {
-        alert('头像更新失败')
+      ElMessage.error('头像更新失败')
     }
   } catch (err) {
     console.error('更新头像失败:', err)
-    alert('头像更新失败，请重试')
+    ElMessage.error('头像更新失败，请重试')
   }
-
   showAvatarModal.value = false
 }
 
@@ -233,17 +251,26 @@ onMounted(() => {
   loadUserInfo()
   updateTime()
   setInterval(updateTime, 1000) // 每秒更新时间
+  
 })
 </script>
 
 <style scoped>  
 .admin-container {
-  padding: 5% 16%;
   background: #f5f6fa;
   color: #222;
+  display: flex;
+  margin:0;
+  /* 水平居中（主轴居中） */
+  justify-content: center;
+  /* 垂直居中（/交叉轴居中） */
+  align-items: center;
+  padding: 40px 0;
+
 }
 .main-content {
   display: flex;
+  width:60rem;
   flex-direction: row;
   gap: 32px;
   background: #fff;
@@ -251,7 +278,7 @@ onMounted(() => {
   box-shadow: var(--card-shadow);
 }
 .profile-column {
-  width: auto;
+  width: 15rem;
   display: flex;
   flex-direction: column;
   padding-left: 50px;

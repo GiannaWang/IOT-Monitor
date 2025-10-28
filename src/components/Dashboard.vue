@@ -80,29 +80,17 @@ export default {
 import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
 
+const envChart = ref(null)
 const currentTime = ref('')
-const selectedAvatar = localStorage.getItem("isLoggedIn") ? localStorage.getItem('userAvatar') : ref('/src/assets/avatar/default.jpg');
-//const currentMenu = ref('dashboard')
 const onlineDevices = ref(28)
 const todayAlarms = ref(5)
 const deviceRate = ref(92)
+
 const alarmList = ref([
   { time: '14:25', content: '101室 高温' },
   { time: '13:10', content: '203室 设备离线' },
   { time: '10:05', content: '302室 CO₂超标' }
 ])
-
-// const currentTime = computed(() => {
-//   const date = new Date()
-//   return (
-//     date.getFullYear() + '-' +
-//     (date.getMonth() + 1).toString().padStart(2, '0') + '-' +
-//     date.getDate().toString().padStart(2, '0') + ' ' +
-//     date.getHours().toString().padStart(2, '0') + ':' +
-//     date.getMinutes().toString().padStart(2, '0') + ':' +
-//     date.getSeconds().toString().padStart(2, '0')
-//   )
-// })
 
 // 定义更新时间的函数
 const updateTime = () => {
@@ -117,7 +105,19 @@ const updateTime = () => {
   )
 }
 
-const envChart = ref(null)
+// 获取头像的函数
+const getAvatar = () => {
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  if (!isLoggedIn) return "/src/assets/avatar/default.jpg";
+
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
+  return user?.avatar || "/src/assets/avatar/fall.bmp";
+};
+
+const selectedAvatar = ref(getAvatar())
+
 onMounted(() => {
   // 初始化时间
   updateTime()
