@@ -1,0 +1,6 @@
+# 默认忽略的文件
+
+# 忽略 SQLite 缓存文件
+database/id_cache.db
+database/id_cache.db-shm
+database/id_cache.db-wal
