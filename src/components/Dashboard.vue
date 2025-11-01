@@ -54,37 +54,20 @@
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      currentTime: '',
-      onlineDevices: 0,
-      todayAlarms: 0,
-      deviceRate: 0,
-      alarmList: []
-    };
-  },
-  methods: {
-    handleRefresh() {
-      // 刷新数据的逻辑
-      window.location.reload(); // 简单的刷新页面(暂定)
-      console.log('刷新数据');
-    }
-  }
-  // 其他生命周期钩子和方法...
-};
-</script>
+
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import dataService from '../utils/dataService'
 import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
+import { ca } from 'element-plus/es/locales.mjs'
 
 const envChart = ref(null)
 const currentTime = ref('')
-const onlineDevices = ref(28)
-const todayAlarms = ref(5)
-const deviceRate = ref(92)
+const onlineDevices = ref(0)
+const todayAlarms = ref(0)
+const deviceRate = ref(0)
 
 const alarmList = ref([
   { time: '14:25', content: '101室 高温' },
@@ -118,11 +101,39 @@ const getAvatar = () => {
 
 const selectedAvatar = ref(getAvatar())
 
+
+// 刷新数据逻辑
+const Refresh = async () => {
+  try {
+    const data = await dataService.getAllSensorData();
+    const temperatureData = await dataService.getSensorDataByType('温度');
+    onlineDevices.value = await dataService.getOnlineDeviceCount();
+    const totalDevices = await dataService.getDeviceCount();
+    deviceRate.value =  (onlineDevices.value / totalDevices * 100).toFixed(2);
+  } catch (error) {
+    console.error('刷新告警数据失败:', error);
+    ElMessage.error('获取数据失败失败，请稍后重试');
+  }
+}
+
+const handleRefresh = () => {
+  try {
+    //window.location.reload();
+    ElMessage.success('刷新成功');
+  } catch (error) {
+    console.error('刷新页面失败:', error);
+    ElMessage.error('刷新页面失败，请稍后重试');
+  }
+  
+}
+
 onMounted(() => {
   // 初始化时间
   updateTime()
   // 每秒更新时间
   setInterval(updateTime, 1000)
+  // 刷新数据
+  Refresh()
   // 初始化图表
   const myChart = echarts.init(envChart.value)
   myChart.setOption({
@@ -156,10 +167,7 @@ onMounted(() => {
   })
 })
 
-// 刷新告警数据逻辑
-const handleRefresh = () => {
-  console.log('刷新数据')
-}
+
 </script>
 
 <style scoped>

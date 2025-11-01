@@ -1,9 +1,6 @@
 // 用户数据服务
 import request from './request.js'
 
-// 可选：模拟API延迟
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
-
 // 用户服务对象
 const userService = {
 
@@ -16,7 +13,8 @@ const userService = {
   // 2. 根据用户名获取用户
   async getUserByUsername(username) {
   // 调用后端登录接口：POST 请求，传递用户名和密码
-    const response = await request.post('/findByUsername?username=' + encodeURIComponent(username));
+    const response = await request.post('/findByUsername?username='
+       + encodeURIComponent(username));
     
     // 后端返回规则：
     // - 成功：用户对象（不含密码）
