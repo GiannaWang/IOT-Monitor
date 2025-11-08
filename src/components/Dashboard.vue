@@ -45,7 +45,7 @@
           <h2>最新告警</h2>
           <button class="refresh-btn" @click="handleRefresh">刷新数据</button>
           <div class="alarm-item" v-for="(alarm, index) in alarmList" :key="index">
-            <span :style="{ color: index === 0 ? '#333' : index === 1 ? '#e6a23c' : '#f56c6c' }">
+            <span>
               {{ alarm.time }} {{ alarm.content }}
             </span>
           </div>
@@ -57,23 +57,26 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, h} from 'vue'
 import dataService from '../utils/dataService'
+import alertService from '../utils/alertService'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
-import { ca } from 'element-plus/es/locales.mjs'
+import { Loading } from '@element-plus/icons-vue'
 
-const envChart = ref(null)
-const currentTime = ref('')
-const onlineDevices = ref(0)
-const todayAlarms = ref(0)
-const deviceRate = ref(0)
 
-const alarmList = ref([
-  { time: '14:25', content: '101室 高温' },
-  { time: '13:10', content: '203室 设备离线' },
-  { time: '10:05', content: '302室 CO₂超标' }
-])
+const envChart = ref(null)    // 环境趋势图表容器引用
+const currentTime = ref('')   // 当前时间字符串
+const onlineDevices = ref(0)  // 在线设备数量
+const todayAlarms = ref(0)    // 今日告警数量
+const deviceRate = ref(0)     // 设备运行率
+const alarmList = ref([ ])    // 最新告警列表
+const chartDataTemp = ref([]) // 温度数据
+const chartDataHum = ref([])  // 湿度数据
+
+let myChart = null;           // ECharts 实例
+
+
 
 // 定义更新时间的函数
 const updateTime = () => {
@@ -98,33 +101,128 @@ const getAvatar = () => {
 
   return user?.avatar || "/src/assets/avatar/fall.bmp";
 };
+const selectedAvatar = ref(getAvatar()) // 头像路径
 
-const selectedAvatar = ref(getAvatar())
 
-
-// 刷新数据逻辑
+// 刷新函数逻辑
 const Refresh = async () => {
   try {
     const data = await dataService.getAllSensorData();
     const temperatureData = await dataService.getSensorDataByType('温度');
-    onlineDevices.value = await dataService.getOnlineDeviceCount();
+    const onlineCount = await dataService.getOnlineDeviceCount(); // 避免变量名重复
     const totalDevices = await dataService.getDeviceCount();
-    deviceRate.value =  (onlineDevices.value / totalDevices * 100).toFixed(2);
+    onlineDevices.value = onlineCount 
+    deviceRate.value = ((onlineCount / totalDevices) * 100).toFixed(2);
+    todayAlarms.value = await alertService.getTodayAlertCount();
   } catch (error) {
     console.error('刷新告警数据失败:', error);
     ElMessage.error('获取数据失败失败，请稍后重试');
   }
 }
 
-const handleRefresh = () => {
+
+// 刷新按钮点击处理函数
+const handleRefresh = async () => {
   try {
+    showLoadingMessage();
+    const alerts = await alertService.getLatest5Alerts();
+    alarmList.value = alerts.map(alert => ({
+      time: alert.timestamp,
+      content: alert.roomNumber +' '+ alert.alertType
+    }));
+
+    // 获取最新温度数据并更新图表
+    chartDataTemp.value = await dataService.get10SensorDataByType('温度');
+    chartDataHum.value = await dataService.get10SensorDataByType('湿度');
+    updateChart();
     //window.location.reload();
     ElMessage.success('刷新成功');
   } catch (error) {
     console.error('刷新页面失败:', error);
     ElMessage.error('刷新页面失败，请稍后重试');
   }
-  
+}
+
+// 更新图表数据的函数
+const updateChart = () => {
+  if(!myChart) return;
+
+  // 统一时间戳（取温度和湿度的并集，确保x轴时间一致）
+  const allTimeStamps = [...new Set(
+    chartDataTemp.value.map(item => item.timeStamp).concat(
+      chartDataHum.value.map(item => item.timeStamp)
+    )
+  )].sort((a, b) => new Date(a) - new Date(b));
+
+  // 格式化时间为 MM-DD HH:mm
+  const xAxisData = allTimeStamps.map(ts => {
+    const date = new Date(ts);
+    return `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  });
+
+  // 提取温度数据（按时间戳匹配）
+  const temperatureData = allTimeStamps.map(ts => {
+    const item = chartDataTemp.value.find(i => i.timeStamp === ts);
+    return item?.value ?? null; // 无数据时显示null
+  });
+
+  // 提取湿度数据（按时间戳匹配）
+  const humidityData = allTimeStamps.map(ts => {
+    const item = chartDataHum.value.find(i => i.timeStamp === ts);
+    return item?.value ?? null; // 无数据时显示null
+  });
+
+  // 更新图表配置
+  myChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}'
+    },
+    xAxis: {
+      type: 'category',
+      data: xAxisData
+    },
+    yAxis: {
+      type: 'value',
+      name: '数值'
+    },
+    series: [
+      {
+        name: '温度',
+        type: 'line',
+        data: temperatureData,
+        smooth: true,
+        lineStyle: { color: '#67C23A' },
+        markPoint: {
+          data: [{ type: 'max', name: '最高' }, { type: 'min', name: '最低' }]
+        }
+      },
+      {
+        name: '湿度',
+        type: 'line',
+        data: humidityData,
+        smooth: true,
+        lineStyle: { color: '#409EFF' },
+        markPoint: {
+          data: [{ type: 'max', name: '最高' }, { type: 'min', name: '最低' }]
+        }
+      }
+    ]
+  });
+}
+
+// 显示加载中消息的函数
+const showLoadingMessage = () => {
+  // 显示加载中消息（带旋转图标）
+  const message = ElMessage({
+    message: '正在加载数据...',
+    icon: h(Loading), // 加载图标
+    duration: 2000,   // 2秒后自动消失（可按需调整）
+    type: 'info',     // 消息类型（不影响加载效果，仅控制边框颜色）
+  })
+
+  // 若需手动关闭（如接口请求完成后），可调用：
+  // message.close()
 }
 
 onMounted(() => {
@@ -135,38 +233,43 @@ onMounted(() => {
   // 刷新数据
   Refresh()
   // 初始化图表
-  const myChart = echarts.init(envChart.value)
+  myChart = echarts.init(envChart.value)
   myChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      formatter: '{b}<br/>{a0}: {c0}<br/>{a1}: {c1}'
+    },
     xAxis: {
       type: 'category',
-      data: ['8/25', '8/26', '8/27', '8/28', '8/29', '8/30', '8/31']
+      data: []
     },
     yAxis: {
-      type: 'value'
+      type: 'value',
+      name: '数值'
     },
     series: [
       {
         name: '温度',
         type: 'line',
-        data: [22, 24, 23, 25, 24, 26, 23],
+        data: [],
         smooth: true,
         lineStyle: { color: '#67C23A' }
       },
       {
         name: '湿度',
         type: 'line',
-        data: [50, 52, 48, 55, 53, 51, 49],
+        data: [],
         smooth: true,
         lineStyle: { color: '#409EFF' }
       }
     ]
   })
+
   // 窗口大小变化时，重置图表大小
   window.addEventListener('resize', () => {
     myChart.resize()
   })
 })
-
 
 </script>
 
@@ -232,6 +335,7 @@ onMounted(() => {
   margin-top: 20px;
   margin-bottom: 16px;
   font-size: 16px;
+  color: #e42020;
 }
 .refresh-btn {
   background: #000000;

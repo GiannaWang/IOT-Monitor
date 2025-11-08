@@ -10,6 +10,10 @@ public interface SensorDataMapper {
     @Select("SELECT * FROM sensor_datas WHERE datatype = #{selectedDataType}")
     public List<SensorData> getSensorDataByType(@Param("selectedDataType") String selectedDataType);
 
+    @Select("SELECT * FROM sensor_datas WHERE datatype = #{selectedDataType} " +
+            "ORDER BY timestamp DESC LIMIT 10")
+    public List<SensorData> get10SensorDataByType(@Param("selectedDataType") String selectedDataType);
+
     @Select("SELECT * FROM sensor_datas")
     public List<SensorData> getAllSensorData();
 

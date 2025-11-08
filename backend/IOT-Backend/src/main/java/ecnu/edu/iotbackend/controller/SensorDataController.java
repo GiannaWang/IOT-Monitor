@@ -28,6 +28,20 @@ public class SensorDataController {
         return Result.success(list);
     }
 
+    @GetMapping("/get10SensorDataByType")
+    public Result<List<SensorData>> get10SensorDataByType(
+            @RequestParam("selectedDataType") String selectedDataType) {
+        List<SensorData> list = sensorDataMapper.get10SensorDataByType(selectedDataType);
+
+        if(list.isEmpty()){
+            return Result.fail("后端获取数据失败/表为空");
+        }
+
+        System.out.println(list);
+        return Result.success(list);
+    }
+
+
     @GetMapping("/getAllSensorData")
     public Result<List<SensorData>> getAllSensorData() {
         List<SensorData> list = sensorDataMapper.getAllSensorData();

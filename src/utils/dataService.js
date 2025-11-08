@@ -51,6 +51,20 @@ const dataService = {
             console.error('获取在线设备数量失败:', error);
             return null;
         }
+    },
+
+    // 5. 获取十条数据用于dashboard显示
+    async get10SensorDataByType(sensorType) {
+        try {
+            const response = await request.get('/get10SensorDataByType', {
+                params: { selectedDataType: sensorType } 
+            });
+            console.log(`获取10条${sensorType}数据成功:`, response);
+            return response.data;
+        } catch (error) {
+            console.error(`获取10条${sensorType}数据失败:`, error);
+            return null;
+        }
     }
 
 }
