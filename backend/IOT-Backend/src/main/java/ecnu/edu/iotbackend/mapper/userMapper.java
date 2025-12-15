@@ -9,26 +9,25 @@ import org.apache.ibatis.annotations.Update;
 import java.util.List;
 
 @Mapper
-public interface userMapper {
+public interface UserMapper {
 
-    // 获取所有用户信息（返回完整用户信息，包含密码）
-    @Select("select * from users")
-    public List<User> findAll();
-
-    // 根据用户名查询用户（返回完整用户信息，包含密码）
+    // 根据用户名查询用户
     @Select("SELECT * FROM users WHERE username = #{username}")
-    public User findByUsername(String username);
+    User getUserByUsername(String username);
 
-    // 根据用户id查询用户（返回完整用户信息，包含密码）
+    // 根据用户ID查询用户
     @Select("SELECT * FROM users WHERE user_id = #{userId}")
-    public User findByUserId(int userId);
+    User getUserById(int userId);
 
-    @Update("UPDATE users SET avatar= #{newAvatar} WHERE user_id = #{userId}")
-    public boolean updateAvatar(@Param("userId") int userId, @Param("newAvatar") String newAvatar);
+    // 更新用户头像
+    @Update("UPDATE users SET avatar = #{avatarUrl} WHERE user_id = #{userId}")
+    void updateAvatar(@Param("userId") int userId, @Param("avatarUrl") String avatarUrl);
 
-    @Update("UPDATE users SET password_hash= #{newPassword} WHERE user_id = #{userId}")
-    public boolean changePassword(@Param("userId") int userId, @Param("newPassword") String newPassword);
+    // 更新用户密码
+    @Update("UPDATE users SET password_hash = #{newPassword} WHERE user_id = #{userId}")
+    void updatePassword(@Param("userId") int userId, @Param("newPassword") String newPassword);
 
-    @Update("UPDATE users SET lastLoginTime = #{currentDate} where user_id = #{userId}")
-    public boolean updateLastLoginTime(@Param("userId") int userId, @Param("currentDate") String currentDate);
+    // 更新最后登录时间（使用数据库当前时间）
+    @Update("UPDATE users SET lastLoginTime = NOW() WHERE user_id = #{userId}")
+    void updateLastLoginTime(@Param("userId") int userId);
 }

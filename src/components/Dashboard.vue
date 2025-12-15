@@ -126,10 +126,15 @@ const handleRefresh = async () => {
   try {
     showLoadingMessage();
     const alerts = await alertService.getLatest5Alerts();
-    alarmList.value = alerts.map(alert => ({
-      time: alert.timestamp,
-      content: alert.roomNumber +' '+ alert.alertType
-    }));
+
+    if (alerts && Array.isArray(alerts)) {
+      alarmList.value = alerts.map(alert => ({
+        time: alert.timestamp,
+        content: alert.roomNumber +' '+ alert.alertType
+      }));
+    } else {
+      alarmList.value = [];
+    }
 
     // 获取最新温度数据并更新图表
     chartDataTemp.value = await dataService.get10SensorDataByType('温度');

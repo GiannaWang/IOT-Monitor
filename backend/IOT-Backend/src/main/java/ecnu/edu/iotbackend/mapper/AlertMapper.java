@@ -16,4 +16,8 @@ public interface AlertMapper {
 
     @Select("SELECT COUNT(*) FROM alerts WHERE DATE(timestamp) = CURDATE()")
     public int getTodayAlertCount();
+    
+    // 根据设备编号删除告警记录
+    @org.apache.ibatis.annotations.Delete("DELETE FROM alerts WHERE deviceid = #{deviceid}")
+    int deleteAlertsByDeviceId(@Param("deviceid") String deviceid);
 }

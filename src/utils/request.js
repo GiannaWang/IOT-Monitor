@@ -3,6 +3,14 @@ import axios from 'axios';
 const request = axios.create({
   baseURL: 'http://localhost:8080', // API基础URL
   timeout: 5000, // 请求超时时间
+  paramsSerializer: {
+    encode: (params) => {
+      // 确保中文参数被正确URL编码
+      return Object.keys(params)
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+        .join('&');
+    }
+  }
 });
 
 request.interceptors.request.use(

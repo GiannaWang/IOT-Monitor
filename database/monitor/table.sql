@@ -54,7 +54,8 @@ CREATE TABLE `sensor_devices`  (
   `timestamp` datetime NOT NULL COMMENT '状态上报时间',
   `datareportinterval` int NOT NULL COMMENT '数据上报频率',
   `locationid` int NOT NULL COMMENT '设备位置',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_deviceid` (`deviceid`)
 );
 
 CREATE TABLE `users`  (
@@ -70,8 +71,7 @@ CREATE TABLE `users`  (
 );
 
 ALTER TABLE `alerts` ADD CONSTRAINT `fk_alerts_device` FOREIGN KEY (`deviceid`) REFERENCES `sensor_devices` (`deviceid`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `alerts` ADD CONSTRAINT `fk_alerts_location` FOREIGN KEY (`deviceid`) REFERENCES `locations` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `alerts` ADD CONSTRAINT `fk_alerts_location` FOREIGN KEY (`locationid`) REFERENCES `locations` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `alerts` ADD CONSTRAINT `fk_alerts_rule` FOREIGN KEY (`ruleid`) REFERENCES `alert_rules` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `sensor_datas` ADD CONSTRAINT `fk_sensor_data_device` FOREIGN KEY (`deviceid`) REFERENCES `sensor_devices` (`deviceid`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `sensor_devices` ADD CONSTRAINT `fk_sensordevices_location` FOREIGN KEY (`locationid`) REFERENCES `locations` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 

@@ -4,3 +4,23 @@
 database/id_cache.db
 database/id_cache.db-shm
 database/id_cache.db-wal
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Java / Maven
+backend/IOT-Backend/target/
+backend/IOT-Backend/*.log
+*.class
+
+# 系统文件
+.DS_Store
+Thumbs.db
