@@ -8,10 +8,24 @@ const alertService = {
         try {
             const response = await request.get('/getAllAlerts');
             console.log('获取告警数据成功:', response);
-            return response.alerts;
+            return response.data || [];
         } catch (error) {
             console.error('获取告警数据失败:', error);
-            return null;
+            return [];
+        }
+    },
+
+    // 4. 标记告警为已处理
+    async markAsHandled(alertId) {
+        try {
+            const response = await request.post('/markAsHandled', null, {
+                params: { alertId }
+            });
+            console.log('标记告警成功:', response);
+            return response.data === true;
+        } catch (error) {
+            console.error('标记告警失败:', error);
+            return false;
         }
     },
 

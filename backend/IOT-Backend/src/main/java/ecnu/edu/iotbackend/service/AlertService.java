@@ -9,6 +9,12 @@ import java.util.List;
 public interface AlertService {
 
     /**
+     * 获取所有告警记录
+     * @return 告警列表
+     */
+    List<Alert> getAllAlerts();
+
+    /**
      * 获取最新5条告警记录
      * @return 告警列表
      */

@@ -96,6 +96,23 @@ public class SensorDataController {
         }
     }
 
+    @GetMapping("/getSensorDataWithFilters")
+    public Result<List<SensorData>> getSensorDataWithFilters(
+            @RequestParam("selectedDataType") String selectedDataType,
+            @RequestParam(value = "locationId", required = false) Integer locationId,
+            @RequestParam(value = "period", required = false) String period,
+            @RequestParam(value = "timeSlot", required = false) String timeSlot) {
+        try {
+            List<SensorData> list = sensorDataService.getSensorDataWithFilters(selectedDataType, locationId, period, timeSlot);
+            logger.info("获取筛选传感器数据成功，类型: {}, 位置: {}, 周期: {}, 时间段: {}, 数量: {}",
+                    selectedDataType, locationId, period, timeSlot, list.size());
+            return Result.success(list);
+        } catch (Exception e) {
+            logger.error("获取筛选传感器数据失败", e);
+            return Result.fail("获取数据失败，请稍后重试");
+        }
+    }
+
     @GetMapping("/getDeviceRate")
     public Result<Double> getDeviceRate() {
         try {

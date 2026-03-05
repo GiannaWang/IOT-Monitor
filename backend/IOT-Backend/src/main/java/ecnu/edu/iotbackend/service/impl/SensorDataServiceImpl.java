@@ -43,6 +43,11 @@ public class SensorDataServiceImpl implements SensorDataService {
     }
 
     @Override
+    public List<SensorData> getSensorDataWithFilters(String dataType, Integer locationId, String period, String timeSlot) {
+        return sensorDataMapper.getSensorDataWithFilters(dataType, locationId, period, timeSlot);
+    }
+
+    @Override
     public double calculateDeviceRate() {
         int onlineCount = countOnlineDevices();
         int totalCount = countAllDevices();

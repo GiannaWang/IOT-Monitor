@@ -104,6 +104,7 @@
         <el-tab-pane label="温湿度" name="humiture">温湿度</el-tab-pane>
         <el-tab-pane label="红外" name="infrared">红外</el-tab-pane>
         <el-tab-pane label="门磁" name="doorMagnet">门磁</el-tab-pane>
+        <el-tab-pane label="计算机" name="computer">计算机</el-tab-pane>
       </el-tabs>
       <!-- 设备表格 -->
       <el-table
@@ -203,7 +204,8 @@ const tableData = computed(() => {
   const typeMap = {
     'humiture': '温湿度',
     'infrared': '红外',
-    'doorMagnet': '门磁'
+    'doorMagnet': '门磁',
+    'computer': '计算机'
   }
   const targetType = typeMap[activeTab.value]
   return allData.value.filter(item => item.type === targetType)

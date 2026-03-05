@@ -87,75 +87,76 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import alertService from '../utils/alertService'
 
-// 将绑定变量初始化为空字符串，对应"全部"选项
-const selectedPeriod = ref('');    // 初始值为空，默认选中"全部周期"
-const selectedType = ref('');      // 初始值为空，默认选中"全部类型"
-const selectedStatus = ref('');    // 初始值为空，默认选中"全部状态"
+const selectedPeriod = ref('');
+const selectedType = ref('');
+const selectedStatus = ref('');
 
-const alarmList = ref([
-  { time: '14:25', room: '101室', type: '高温', status: '未处理', handler: '-' },
-  { time: '13:10', room: '203室', type: '设备离线', status: '处理中', handler: '张三' },
-  { time: '10:05', room: '302室', type: 'CO₂超标', status: '处理中', handler: '李四' },
-  { time: '09:30', room: '102室', type: '高温', status: '未处理', handler: '李四' },
-  { time: '08:45', room: '201室', type: '设备离线', status: '未处理', handler: '-' }
-]);
+const alarmList = ref([]);
 
-// 根据选择条件过滤告警列表
+// 将后端 Alert 对象转为页面显示格式
+function toDisplayItem(alert) {
+  return {
+    id: alert.id,
+    time: alert.timestamp ? alert.timestamp.replace('T', ' ').substring(0, 16) : '-',
+    room: alert.roomNumber ? `${alert.roomNumber}室` : '-',
+    type: alert.alertType || '-',
+    status: alert.handled === 1 ? '已处理' : '未处理',
+    handler: '-'
+  }
+}
+
+onMounted(async () => {
+  const data = await alertService.getAllAlerts();
+  alarmList.value = data.map(toDisplayItem);
+});
+
+// 日期范围过滤辅助
+function isInPeriod(timeStr, period) {
+  if (!period) return true;
+  const now = new Date();
+  const t = new Date(timeStr);
+  if (period === 'today') {
+    return t.toDateString() === now.toDateString();
+  }
+  if (period === 'yesterday') {
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    return t.toDateString() === y.toDateString();
+  }
+  if (period === '7days') {
+    const d = new Date(now); d.setDate(now.getDate() - 7);
+    return t >= d;
+  }
+  if (period === '30days') {
+    const d = new Date(now); d.setDate(now.getDate() - 30);
+    return t >= d;
+  }
+  return true;
+}
+
+const typeMap = { highTemp: '高温', offline: '设备离线', co2: 'CO₂超标', humidity: '湿度异常', power: '电源异常' };
+const statusMap = { pending: '未处理', done: '已处理' };
+
 const filteredAlarms = computed(() => {
   return alarmList.value.filter(alarm => {
-    // 类型过滤
-    if (selectedType.value && 
-        !alarm.type.includes(getTypeName(selectedType.value))) {
-      return false;
-    }
-    
-    // 状态过滤
-    if (selectedStatus.value) {
-      const statusName = getStatusName(selectedStatus.value);
-      if (alarm.status !== statusName) {
-        return false;
-      }
-    }
-    
-    // 周期过滤可以在这里添加实际的日期过滤逻辑
-    // 实际应用中可能需要更复杂的日期处理
-    if (selectedPeriod.value === 'today') {
-      // 这里仅做示例，实际应根据完整日期判断
-      return true;
-    }
-    
+    if (selectedType.value && alarm.type !== (typeMap[selectedType.value] || '')) return false;
+    if (selectedStatus.value && alarm.status !== (statusMap[selectedStatus.value] || '')) return false;
+    if (selectedPeriod.value && !isInPeriod(alarm.time, selectedPeriod.value)) return false;
     return true;
   });
 });
 
-// 根据值获取类型名称
-function getTypeName(value) {
-  const typeMap = {
-    'highTemp': '高温',
-    'offline': '设备离线',
-    'co2': 'CO₂超标',
-    'humidity': '湿度异常',
-    'power': '电源异常'
-  };
-  return typeMap[value] || '';
-}
-
-// 根据值获取状态名称
-function getStatusName(value) {
-  const statusMap = {
-    'pending': '未处理',
-    'processing': '处理中',
-    'done': '已处理'
-  };
-  return statusMap[value] || '';
-}
-
-// 标记为已处理
-function markAsDone(item) {
-  item.status = '已处理';
-  // 实际应用中这里可以添加处理人信息和API调用
+async function markAsDone(item) {
+  const success = await alertService.markAsHandled(item.id);
+  if (success) {
+    item.status = '已处理';
+    ElMessage.success('已标记为处理');
+  } else {
+    ElMessage.error('标记失败，请重试');
+  }
 }
 </script>
 

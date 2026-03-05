@@ -19,6 +19,18 @@ public class AlertController {
     @Autowired
     private AlertService alertService;
 
+    @GetMapping("/getAllAlerts")
+    public Result<List<Alert>> getAllAlerts() {
+        try {
+            List<Alert> alerts = alertService.getAllAlerts();
+            logger.info("获取所有告警成功，数量: {}", alerts.size());
+            return Result.success(alerts);
+        } catch (Exception e) {
+            logger.error("获取所有告警失败", e);
+            return Result.fail("获取告警失败，请稍后重试");
+        }
+    }
+
     @GetMapping("/getLatest5Alerts")
     public Result<List<Alert>> getLatest5Alerts() {
         try {

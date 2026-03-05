@@ -3,6 +3,7 @@ package ecnu.edu.iotbackend.mapper;
 import ecnu.edu.iotbackend.entity.SensorData;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.SelectProvider;
 
 import java.util.List;
 
@@ -17,17 +18,37 @@ public interface SensorDataMapper {
     @Select("SELECT * FROM sensor_datas")
     public List<SensorData> getAllSensorData();
 
-    @Select("SELECT COUNT(*) FROM sensor_datas WHERE status = '正常'")
+    @Select("SELECT COUNT(*) FROM sensor_devices WHERE status = 'online'")
     public int countOnlineDevices();
 
-    @Select("SELECT COUNT(*) FROM sensor_datas")
+    @Select("SELECT COUNT(*) FROM sensor_devices")
     public int countAllDevices();
     
-    // 根据设备编号删除传感器数据（deviceid在sensor_datas中是int类型，需要转换）
-    // 注意：sensor_datas的deviceid是int，而sensor_devices的deviceid是varchar
-    // 这里需要根据实际情况处理，可能需要先查询设备获取deviceid的数值部分
+    /**
+     * 获取指定设备指定类型的最新一条数据（供告警检测使用）
+     */
+    @Select("SELECT * FROM sensor_datas WHERE deviceid = #{deviceId} AND datatype = #{dataType} " +
+            "ORDER BY timestamp DESC LIMIT 1")
+    SensorData getLatestDataByDeviceAndType(@Param("deviceId") int deviceId, @Param("dataType") String dataType);
+
+    /**
+     * 动态筛选传感器数据：支持 dataType / locationId / period / timeSlot 组合
+     */
+    @SelectProvider(type = SensorDataProvider.class, method = "getSensorDataWithFilters")
+    List<SensorData> getSensorDataWithFilters(
+            @Param("dataType") String dataType,
+            @Param("locationId") Integer locationId,
+            @Param("period") String period,
+            @Param("timeSlot") String timeSlot);
+
     @org.apache.ibatis.annotations.Delete("DELETE FROM sensor_datas WHERE deviceid = #{deviceid}")
     int deleteSensorDataByDeviceId(@Param("deviceid") Integer deviceid);
 
-
+    /**
+     * 插入一条传感器数据（Windows Agent 上报指标使用）
+     */
+    @org.apache.ibatis.annotations.Insert(
+            "INSERT INTO sensor_datas (deviceid, datatype, value, unit, timestamp, status) " +
+            "VALUES (#{deviceId}, #{dataType}, #{value}, #{unit}, #{timeStamp}, #{status})")
+    int insertSensorData(SensorData data);
 }

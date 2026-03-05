@@ -18,6 +18,11 @@ public class AlertServiceImpl implements AlertService {
     private AlertMapper alertMapper;
 
     @Override
+    public List<Alert> getAllAlerts() {
+        return alertMapper.getAllAlerts();
+    }
+
+    @Override
     public List<Alert> getLatest5Alerts() {
         return alertMapper.getLatest5Alerts();
     }
@@ -29,8 +34,6 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     public boolean markAsHandled(int alertId) {
-        // TODO: 实现标记告警为已处理的逻辑
-        // 需要在AlertMapper中添加相应的方法
-        return false;
+        return alertMapper.markAsHandled(alertId) > 0;
     }
 }

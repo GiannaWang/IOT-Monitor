@@ -57,13 +57,51 @@ const dataService = {
     async get10SensorDataByType(sensorType) {
         try {
             const response = await request.get('/get10SensorDataByType', {
-                params: { selectedDataType: sensorType } 
+                params: { selectedDataType: sensorType }
             });
             console.log(`获取10条${sensorType}数据成功:`, response);
             return response.data;
         } catch (error) {
             console.error(`获取10条${sensorType}数据失败:`, error);
             return null;
+        }
+    },
+
+    // 6. 获取所有位置信息
+    async getAllLocations() {
+        try {
+            const response = await request.get('/location/all');
+            console.log('获取所有位置成功:', response);
+            return response.data || [];
+        } catch (error) {
+            console.error('获取位置列表失败:', error);
+            return [];
+        }
+    },
+
+    // 7. 根据位置ID获取位置信息
+    async getLocationById(id) {
+        try {
+            const response = await request.get(`/location/${id}`);
+            console.log('获取位置详情成功:', response);
+            return response.data;
+        } catch (error) {
+            console.error('获取位置详情失败:', error);
+            return null;
+        }
+    },
+
+    // 8. 获取传感器数据（支持 locationId / period / timeSlot 筛选）
+    async getSensorDataWithFilters(params) {
+        try {
+            const response = await request.get('/getSensorDataWithFilters', {
+                params: params
+            });
+            console.log('获取筛选数据成功:', response);
+            return response.data || [];
+        } catch (error) {
+            console.error('获取筛选数据失败:', error);
+            return [];
         }
     }
 

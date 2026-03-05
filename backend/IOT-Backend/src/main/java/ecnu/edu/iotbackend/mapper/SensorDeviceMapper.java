@@ -55,4 +55,22 @@ public interface SensorDeviceMapper {
     int updateDeviceStatus(@Param("deviceid") String deviceid,
                           @Param("status") String status,
                           @Param("timestamp") java.time.LocalDateTime timestamp);
+
+    /**
+     * Windows 机器注册/心跳更新（存在则更新，不存在则插入）
+     * 需要 sensor_devices.deviceid 列有 UNIQUE 约束
+     */
+    @Insert("INSERT INTO sensor_devices (devicename, deviceid, sensortype, source, status, " +
+            "installtime, timestamp, datareportinterval, locationid) " +
+            "VALUES (#{devicename}, #{deviceid}, #{sensortype}, #{source}, #{status}, " +
+            "NOW(), NOW(), #{datareportinterval}, #{locationid}) " +
+            "ON DUPLICATE KEY UPDATE " +
+            "devicename = VALUES(devicename), " +
+            "source = VALUES(source), " +
+            "status = 'online', " +
+            "timestamp = NOW(), " +
+            "datareportinterval = VALUES(datareportinterval), " +
+            "locationid = VALUES(locationid)")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int upsertWindowsMachine(SensorDevice device);
 }

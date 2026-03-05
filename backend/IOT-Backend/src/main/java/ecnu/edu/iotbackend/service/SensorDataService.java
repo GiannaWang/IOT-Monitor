@@ -45,4 +45,9 @@ public interface SensorDataService {
      * @return 设备运行率（百分比，保留2位小数）
      */
     double calculateDeviceRate();
+
+    /**
+     * 按条件筛选传感器数据（支持 locationId / period / timeSlot）
+     */
+    List<SensorData> getSensorDataWithFilters(String dataType, Integer locationId, String period, String timeSlot);
 }
