@@ -60,23 +60,13 @@ const handleLogin = async () => {
 
     // 调用登录API
     const response = await userService.login(username.value, password.value);
-  
-    if(response.code === 200) {
-      // 登录成功，保存登录状态和用户信息
-      const dbUser = response.data;
-      console.log('从后端获取的用户数据:', dbUser);
 
-      if(password.value === dbUser.passwordHash) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('user', JSON.stringify(dbUser));
-        userService.updateUserLoginTime(dbUser.userId); // 设置当前用户
-        ElMessage.success('登录成功！');
-        router.push('/dashboard'); // 重定向到仪表盘页面
-      } else {
-        errorMessage.value = '用户名或密码错误';
-      }
+    if (response.code === 200) {
+      // token 和用户信息已由 userService.login 存入 localStorage
+      ElMessage.success('登录成功！');
+      router.push('/dashboard');
     } else {
-      errorMessage.value = response.errorMessage || '登录失败，请重试';
+      errorMessage.value = response.msg || '用户名或密码错误';
     }
   } catch (error) {
     errorMessage.value = '登录失败，请重试';

@@ -29,20 +29,13 @@ const router = createRouter({
   routes
 })
 
-// 全局导航守卫，检查登录状态
+// 全局导航守卫：有 token 视为已登录
 router.beforeEach((to, from, next) => {
-  // 判断该路由是否需要登录权限
   if (to.meta.requiresAuth) {
-    // 检查登录状态
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
-    
-    if (isLoggedIn) {
-      next() // 已登录，放行
-    } else {
-      next({ path: '/login' }) // 未登录，跳转到登录页
-    }
+    const token = localStorage.getItem('token')
+    token ? next() : next({ path: '/login' })
   } else {
-    next() // 不需要登录的路由直接放行
+    next()
   }
 })
 

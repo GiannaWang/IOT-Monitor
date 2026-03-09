@@ -4,32 +4,27 @@ import ecnu.edu.iotbackend.entity.User;
 import ecnu.edu.iotbackend.mapper.UserMapper;
 import ecnu.edu.iotbackend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/**
- * 用户业务逻辑实现类
- */
 @Service
 public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
     @Override
     public User login(String username, String password) {
         User user = userMapper.getUserByUsername(username);
+        if (user == null) return null;
 
-        if (user == null) {
-            return null;
-        }
-
-        // 验证密码（实际项目中应该使用加密后的密码对比）
-        if (user.getPasswordHash().equals(password)) {
-            // 更新最后登录时间
+        if (passwordEncoder.matches(password, user.getPasswordHash())) {
             updateLastLoginTime(user.getUserId());
             return user;
         }
-
         return null;
     }
 
@@ -53,18 +48,13 @@ public class UserServiceImpl implements UserService {
     public boolean updatePassword(int userId, String oldPassword, String newPassword) {
         try {
             User user = userMapper.getUserById(userId);
+            if (user == null) return false;
 
-            if (user == null) {
+            if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
                 return false;
             }
 
-            // 验证旧密码
-            if (!user.getPasswordHash().equals(oldPassword)) {
-                return false;
-            }
-
-            // 更新密码（实际项目中应该加密后存储）
-            userMapper.updatePassword(userId, newPassword);
+            userMapper.updatePassword(userId, passwordEncoder.encode(newPassword));
             return true;
         } catch (Exception e) {
             e.printStackTrace();

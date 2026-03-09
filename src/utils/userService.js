@@ -1,160 +1,80 @@
 // 用户数据服务
 import request from './request.js'
 
-// 用户服务对象
 const userService = {
 
-  // 1. 获取所有用户
-  async getAllUsers() {
-    const response = await request.get('/getAll')
-    return response.users
-  },
-  
-  // 2. 根据用户名获取用户
+  // 1. 根据用户名获取用户
   async getUserByUsername(username) {
-  // 调用后端登录接口：POST 请求，传递用户名和密码
-    const response = await request.post('/findByUsername?username='
-       + encodeURIComponent(username));
-    
-    // 后端返回规则：
-    // - 成功：用户对象（不含密码）
-    // - 失败：错误字符串（如"用户名不存在"）
-    if (typeof response === 'object') {
-      // 登录成功，返回用户信息
-      return response;
-    } else {
-      // 登录失败，返回 null（前端可捕获错误消息）
-      console.error('登录失败:', response);
-      return null;
-    }
+    const response = await request.get('/getUserByUsername', { params: { username } });
+    return response.code === 200 ? response.data : null;
   },
-  
-  // 3. 用户登录验证（后端接口：对应后端 UserController 的 /api/user/login）
+
+  // 2. 用户登录
+  // 成功后自动将 token 和用户信息存入 localStorage
   async login(username, password) {
-    // 调用后端登录接口：POST 请求，传递用户名和密码
     const response = await request.post('/login', {
       username: username,
-      password_hash: password
+      passwordHash: password  // 对应后端 User 实体字段名
     });
-    
-    // 后端返回规则：
-    // - 成功：{ code: 200, data: 用户对象（不含密码） }
-    // - 失败：{ code: 401, message: '错误消息' }
+
     if (response.code === 200) {
-      // 登录成功，返回用户信息
-      return response;
-    } else {
-      // 登录失败，返回 null（前端可捕获错误消息）
-      console.error('登录失败:', response);
-      return null;
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
     }
+    return response;
   },
-  
+
+  // 3. 登出：清除本地凭证
+  logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
   // 4. 更新用户头像
   async updateUserAvatar(userId, avatarPath) {
     try {
-      const response = await request.post('/updateAvatarByUserId', {}, {
-        params: {
-          userId: userId,
-          newAvatar: avatarPath
-        }
+      const response = await request.post('/updateAvatar', {}, {
+        params: { userId, avatarUrl: avatarPath }
       });
 
-      // 后端返回规则：
-      // - 成功：{ code: 200, message: '头像更新成功' }
-      // - 失败：{ code: 500, message: '更新失败原因' }
       if (response.code === 200) {
-
-        // 1. 正确读取并解析 localStorage 中的 user 对象
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
-          console.error('未找到用户信息');
-          return false;
-        }
-        const user = JSON.parse(userStr); // 解析为JS对象
-
-        // 2. 修改 avatar 属性
-        user.avatar = avatarPath; 
-
-        // 3. 重新存入 localStorage（转成JSON字符串）
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        user.avatar = avatarPath;
         localStorage.setItem('user', JSON.stringify(user));
-
         return true;
-      } else {
-        console.error('code-500, 后端返回更新头像失败:', response.message);
-        return false;
       }
+      return false;
     } catch (error) {
-      console.error('调用后端更新头像接口失败:', error);
+      console.error('更新头像失败:', error);
       return false;
     }
-    
   },
-  
-  // 5. 修改密码
+
+  // 5. 修改密码（由后端用 BCrypt 验证旧密码）
   async changePassword(userId, oldPassword, newPassword) {
     try {
-      // 解析user对象并获取password，不存在则返回null
-      const userPassword = JSON.parse(localStorage.getItem('user')).passwordHash;
-      if(oldPassword !== userPassword) {
-        return ('原密码错误');
-      } else {
-        const response = await request.post('/changePassword', {}, {
-          params: {
-            userId: userId,
-            newPassword: newPassword
-          }
-        });
+      const response = await request.post('/changePassword', {}, {
+        params: { userId, oldPassword, newPassword }
+      });
 
-        // 后端返回规则：
-        // - 成功：{ code: 200, message: '密码修改成功' }
-        // - 失败：{ code: 500, message: '修改失败原因' }
-        if (response.code === 200) {
-          const userStr = localStorage.getItem('user');
-          if (!userStr) {
-            console.error('未找到用户信息');
-            return false;
-          }
-          const user = JSON.parse(userStr); // 解析为JS对象
-
-          // 2. 修改 avatar 属性
-          user.passwordHash = newPassword; 
-
-          // 3. 重新存入 localStorage（转成JSON字符串）
-          localStorage.setItem('user', JSON.stringify(user));
-
-          return true;
-        } else {
-          console.error('code-500, 后端返回修改密码失败:', response.message);
-          return ('修改密码失败: ' + response.message);
-        }
+      if (response.code === 200) {
+        return true;
       }
+      return response.msg || '修改密码失败';
     } catch (error) {
-      console.error('调用后端修改密码接口失败:', error);
-      return ('调用后端修改密码接口失败');
+      console.error('修改密码失败:', error);
+      return '调用后端修改密码接口失败';
     }
   },
 
-  // 6. 更新用户登录时间
+  // 6. 更新最后登录时间
   async updateUserLoginTime(userId) {
     try {
-      const date = new Date()
-      const currentDate = (
-        date.getFullYear() + '/' +
-        (date.getMonth() + 1).toString().padStart(2, '0') + '/' +
-        date.getDate().toString().padStart(2, '0')
-      );
-      const response = await request.post('/updateLastLoginTime', {}, {
-        params: {
-          userId: userId,
-          currentDate: currentDate
-        }
-      });
+      await request.post('/updateLastLoginTime', {}, { params: { userId } });
     } catch (error) {
-      console.error('调用后端更新登录时间接口失败:', error);
+      console.error('更新登录时间失败:', error);
     }
   }
 }
 
 export default userService
-    

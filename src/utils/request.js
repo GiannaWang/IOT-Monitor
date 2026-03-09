@@ -1,11 +1,10 @@
 import axios from 'axios';
 
 const request = axios.create({
-  baseURL: 'http://localhost:8080', // API基础URL
-  timeout: 5000, // 请求超时时间
+  baseURL: 'http://localhost:8080',
+  timeout: 5000,
   paramsSerializer: {
     encode: (params) => {
-      // 确保中文参数被正确URL编码
       return Object.keys(params)
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
         .join('&');
@@ -13,24 +12,27 @@ const request = axios.create({
   }
 });
 
+// 请求拦截器：自动携带 JWT token
 request.interceptors.request.use(
-    (config) => {
-        // 在发送请求之前做些什么，比如添加认证token
-        // const token = localStorage.getItem('authToken');
-        return config;
-    },
-    (error) => {
-        // 处理请求错误
-        return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
-// 响应拦截器（可选，统一处理响应格式）
+// 响应拦截器：统一处理 401（未登录 / token 过期）
 request.interceptors.response.use(
-  (response) => {
-    return response.data;  // 直接返回响应体数据
-  },
+  (response) => response.data,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );

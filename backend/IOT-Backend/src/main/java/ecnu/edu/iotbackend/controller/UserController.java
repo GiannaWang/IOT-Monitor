@@ -1,15 +1,16 @@
 package ecnu.edu.iotbackend.controller;
 
+import ecnu.edu.iotbackend.common.Result;
+import ecnu.edu.iotbackend.entity.LoginResult;
 import ecnu.edu.iotbackend.entity.User;
 import ecnu.edu.iotbackend.service.UserService;
+import ecnu.edu.iotbackend.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import ecnu.edu.iotbackend.common.Result;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -17,20 +18,26 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @PostMapping("/login")
-    public Result<User> login(@RequestBody User loginUser) {
-        try {
-            // 验证用户名和密码
-            User user = userService.login(loginUser.getUsername(), loginUser.getPasswordHash());
+    @Autowired
+    private JwtUtil jwtUtil;
 
+    /**
+     * 登录接口（白名单，无需 token）
+     * 成功返回 JWT token + 脱敏用户信息
+     */
+    @PostMapping("/login")
+    public Result<LoginResult> login(@RequestBody User loginUser) {
+        try {
+            User user = userService.login(loginUser.getUsername(), loginUser.getPasswordHash());
             if (user == null) {
                 return Result.fail("用户名或密码错误");
             }
-
+            String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
+            user.setPasswordHash(null); // 不把密码哈希返回给前端
             logger.info("用户登录成功: {}", user.getUsername());
-            return Result.success(user);
+            return Result.success(new LoginResult(token, user));
         } catch (Exception e) {
-            logger.error("登录失败", e);
+            logger.error("登录异常", e);
             return Result.fail("登录失败，请稍后重试");
         }
     }
@@ -39,11 +46,8 @@ public class UserController {
     public Result<User> getUserByUsername(@RequestParam String username) {
         try {
             User user = userService.getUserByUsername(username);
-
-            if (user == null) {
-                return Result.fail("用户不存在");
-            }
-
+            if (user == null) return Result.fail("用户不存在");
+            user.setPasswordHash(null);
             return Result.success(user);
         } catch (Exception e) {
             logger.error("查询用户失败", e);
@@ -55,13 +59,7 @@ public class UserController {
     public Result<Boolean> updateAvatar(@RequestParam int userId, @RequestParam String avatarUrl) {
         try {
             boolean success = userService.updateAvatar(userId, avatarUrl);
-
-            if (success) {
-                logger.info("更新用户头像成功，用户ID: {}", userId);
-                return Result.success(true);
-            } else {
-                return Result.fail("更新头像失败");
-            }
+            return success ? Result.success(true) : Result.fail("更新头像失败");
         } catch (Exception e) {
             logger.error("更新头像失败", e);
             return Result.fail("更新失败，请稍后重试");
@@ -69,19 +67,12 @@ public class UserController {
     }
 
     @PostMapping("/changePassword")
-    public Result<Boolean> changePassword(
-            @RequestParam int userId,
-            @RequestParam String oldPassword,
-            @RequestParam String newPassword) {
+    public Result<Boolean> changePassword(@RequestParam int userId,
+                                          @RequestParam String oldPassword,
+                                          @RequestParam String newPassword) {
         try {
             boolean success = userService.updatePassword(userId, oldPassword, newPassword);
-
-            if (success) {
-                logger.info("修改密码成功，用户ID: {}", userId);
-                return Result.success(true);
-            } else {
-                return Result.fail("旧密码错误或修改失败");
-            }
+            return success ? Result.success(true) : Result.fail("旧密码错误");
         } catch (Exception e) {
             logger.error("修改密码失败", e);
             return Result.fail("修改失败，请稍后重试");
