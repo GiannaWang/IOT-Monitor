@@ -7,6 +7,7 @@ database/id_cache.db-wal
 
 # Node.js
 node_modules/
+dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -18,6 +19,7 @@ yarn-error.log*
 
 # Java / Maven
 backend/IOT-Backend/target/
+backend/target/
 backend/IOT-Backend/*.log
 *.class
 
