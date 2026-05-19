@@ -1,110 +1,112 @@
-// 数据分析服务
-import request from "./request";
-
+import request from './request'
 
 const dataService = {
-    // 1. 获取所有传感器数据
-    async getAllSensorData() {
-        try {
-            const response = await request.get('/getAllSensorData');
-            console.log('获取传感器数据成功:', response);
-            return response.sensorData;
-        } catch (error) {
-            console.error('获取传感器数据失败:', error);
-            return null;
-        }
-    },
-
-    // 2. 根据传感器类型获取数据
-    async getSensorDataByType(sensorType) {
-        try {
-            const response = await request.get('/getSensorDataByType', {
-                params: { selectedDataType: sensorType } 
-            });
-            console.log(`获取${sensorType}数据成功:`, response);
-            return response.sensorData;
-        } catch (error) {
-            console.error(`获取${sensorType}数据失败:`, error);
-            return null;
-        }
-    },
-
-    // 3. 获取所有设备数量
-    async getDeviceCount() {
-        try {
-            const response = await request.get('/countAllDevices');
-            console.log('获取设备数量成功:', response);
-            return response.data;
-        } catch (error) {
-            console.error('获取设备数量失败:', error);
-            return null;
-        }
-    },
-
-    // 4. 获取在线设备数量
-    async getOnlineDeviceCount() {
-        try {
-            const response = await request.get('/countOnlineDevices');
-            console.log('获取在线设备数量成功:', response);
-            return response.data;
-        } catch (error) {
-            console.error('获取在线设备数量失败:', error);
-            return null;
-        }
-    },
-
-    // 5. 获取十条数据用于dashboard显示
-    async get10SensorDataByType(sensorType) {
-        try {
-            const response = await request.get('/get10SensorDataByType', {
-                params: { selectedDataType: sensorType }
-            });
-            console.log(`获取10条${sensorType}数据成功:`, response);
-            return response.data;
-        } catch (error) {
-            console.error(`获取10条${sensorType}数据失败:`, error);
-            return null;
-        }
-    },
-
-    // 6. 获取所有位置信息
-    async getAllLocations() {
-        try {
-            const response = await request.get('/location/all');
-            console.log('获取所有位置成功:', response);
-            return response.data || [];
-        } catch (error) {
-            console.error('获取位置列表失败:', error);
-            return [];
-        }
-    },
-
-    // 7. 根据位置ID获取位置信息
-    async getLocationById(id) {
-        try {
-            const response = await request.get(`/location/${id}`);
-            console.log('获取位置详情成功:', response);
-            return response.data;
-        } catch (error) {
-            console.error('获取位置详情失败:', error);
-            return null;
-        }
-    },
-
-    // 8. 获取传感器数据（支持 locationId / period / timeSlot 筛选）
-    async getSensorDataWithFilters(params) {
-        try {
-            const response = await request.get('/getSensorDataWithFilters', {
-                params: params
-            });
-            console.log('获取筛选数据成功:', response);
-            return response.data || [];
-        } catch (error) {
-            console.error('获取筛选数据失败:', error);
-            return [];
-        }
+  async getAllSensorData() {
+    try {
+      const response = await request.get('/getAllSensorData')
+      return response.data || []
+    } catch (error) {
+      console.error('Failed to fetch sensor data:', error)
+      return []
     }
+  },
 
+  async getSensorDataByType(sensorType) {
+    try {
+      const response = await request.get('/getSensorDataByType', {
+        params: { selectedDataType: sensorType }
+      })
+      return response.data || []
+    } catch (error) {
+      console.error(`Failed to fetch ${sensorType} data:`, error)
+      return []
+    }
+  },
+
+  async getDeviceCount() {
+    try {
+      const response = await request.get('/countAllDevices')
+      return response.data ?? 0
+    } catch (error) {
+      console.error('Failed to fetch device count:', error)
+      return 0
+    }
+  },
+
+  async getOnlineDeviceCount() {
+    try {
+      const response = await request.get('/countOnlineDevices')
+      return response.data ?? 0
+    } catch (error) {
+      console.error('Failed to fetch online device count:', error)
+      return 0
+    }
+  },
+
+  async get10SensorDataByType(sensorType) {
+    try {
+      const response = await request.get('/get10SensorDataByType', {
+        params: { selectedDataType: sensorType }
+      })
+      return response.data || []
+    } catch (error) {
+      console.error(`Failed to fetch latest 10 ${sensorType} records:`, error)
+      return []
+    }
+  },
+
+  async getAllLocations() {
+    try {
+      const response = await request.get('/location/all')
+      return response.data || []
+    } catch (error) {
+      console.error('Failed to fetch locations:', error)
+      return []
+    }
+  },
+
+  async getLocationById(id) {
+    try {
+      const response = await request.get(`/location/${id}`)
+      return response.data || null
+    } catch (error) {
+      console.error('Failed to fetch location detail:', error)
+      return null
+    }
+  },
+
+  async createLocation(location) {
+    try {
+      const response = await request.post('/location', location)
+      return response.code === 200 ? response.data || null : null
+    } catch (error) {
+      console.error('Failed to create location:', error)
+      return null
+    }
+  },
+
+  async deleteLocation(id) {
+    try {
+      const response = await request.delete(`/location/${id}`)
+      return response.code === 200
+        ? { success: true, msg: response.msg || 'success' }
+        : { success: false, msg: response.msg || 'Failed to delete location' }
+    } catch (error) {
+      const msg = error?.response?.data?.msg || 'Failed to delete location'
+      console.error('Failed to delete location:', error)
+      return { success: false, msg }
+    }
+  },
+
+  async getSensorDataWithFilters(params) {
+    try {
+      const response = await request.get('/getSensorDataWithFilters', { params })
+      return response.data || []
+    } catch (error) {
+      console.error('Failed to fetch filtered sensor data:', error)
+      return []
+    }
+  }
 }
 
-export default dataService;
+export default dataService

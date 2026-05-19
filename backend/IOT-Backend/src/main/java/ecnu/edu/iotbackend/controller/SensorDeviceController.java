@@ -3,6 +3,7 @@ package ecnu.edu.iotbackend.controller;
 import ecnu.edu.iotbackend.common.Result;
 import ecnu.edu.iotbackend.entity.HAEntity;
 import ecnu.edu.iotbackend.entity.SensorDevice;
+import ecnu.edu.iotbackend.security.CurrentUserProvider;
 import ecnu.edu.iotbackend.service.SensorDeviceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,9 @@ public class SensorDeviceController {
 
     @Autowired
     private SensorDeviceService sensorDeviceService;
+
+    @Autowired
+    private CurrentUserProvider currentUserProvider;
 
     /**
      * 获取所有已启用的设备
@@ -43,6 +47,9 @@ public class SensorDeviceController {
     @GetMapping("/available")
     public Result<List<HAEntity>> getAvailableDevices() {
         try {
+            if (!currentUserProvider.isAdmin()) {
+                return Result.fail("没有权限");
+            }
             List<HAEntity> devices = sensorDeviceService.getAvailableDevices();
             logger.info("获取可添加设备成功，数量: {}", devices.size());
             return Result.success(devices);
@@ -64,6 +71,9 @@ public class SensorDeviceController {
     @PostMapping("/enable")
     public Result<String> enableDevice(@RequestBody Map<String, Object> request) {
         try {
+            if (!currentUserProvider.isAdmin()) {
+                return Result.fail("没有权限");
+            }
             String entityId = (String) request.get("entityId");
             Integer locationId = request.get("locationId") != null
                 ? Integer.parseInt(request.get("locationId").toString())
@@ -96,6 +106,9 @@ public class SensorDeviceController {
     @DeleteMapping("/{id}")
     public Result<String> disableDevice(@PathVariable Integer id) {
         try {
+            if (!currentUserProvider.isAdmin()) {
+                return Result.fail("没有权限");
+            }
             boolean success = sensorDeviceService.disableDevice(id);
             if (success) {
                 logger.info("禁用设备成功，ID: {}", id);

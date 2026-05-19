@@ -16,6 +16,22 @@ public interface AlertMapper {
             "LIMIT 5")
     List<Alert> getLatest5Alerts();
 
+    @Select({
+            "<script>",
+            "SELECT alerts.id, alerts.deviceid, alerts.locationid, alerts.alerttype,",
+            "alerts.severity, alerts.message, alerts.timestamp, alerts.handled,",
+            "locations.roomnumber",
+            "FROM alerts",
+            "JOIN locations ON alerts.locationid = locations.id",
+            "WHERE alerts.locationid IN",
+            "<foreach collection='locationIds' item='locationId' open='(' separator=',' close=')'>",
+            "#{locationId}",
+            "</foreach>",
+            "ORDER BY alerts.timestamp DESC LIMIT 5",
+            "</script>"
+    })
+    List<Alert> getLatest5AlertsByLocationIds(@Param("locationIds") List<Integer> locationIds);
+
     @Select("SELECT alerts.id, alerts.deviceid, alerts.locationid, alerts.alerttype, " +
             "alerts.severity, alerts.message, alerts.timestamp, alerts.handled, " +
             "locations.roomnumber " +
@@ -24,8 +40,37 @@ public interface AlertMapper {
             "ORDER BY alerts.timestamp DESC")
     List<Alert> getAllAlerts();
 
+    @Select({
+            "<script>",
+            "SELECT alerts.id, alerts.deviceid, alerts.locationid, alerts.alerttype,",
+            "alerts.severity, alerts.message, alerts.timestamp, alerts.handled,",
+            "locations.roomnumber",
+            "FROM alerts",
+            "JOIN locations ON alerts.locationid = locations.id",
+            "WHERE alerts.locationid IN",
+            "<foreach collection='locationIds' item='locationId' open='(' separator=',' close=')'>",
+            "#{locationId}",
+            "</foreach>",
+            "ORDER BY alerts.timestamp DESC",
+            "</script>"
+    })
+    List<Alert> getAllAlertsByLocationIds(@Param("locationIds") List<Integer> locationIds);
+
     @Select("SELECT COUNT(*) FROM alerts WHERE DATE(timestamp) = CURDATE()")
     int getTodayAlertCount();
+
+    @Select("SELECT COUNT(*) FROM alerts WHERE locationid = #{locationId}")
+    int countByLocationId(@Param("locationId") Integer locationId);
+
+    @Select({
+            "<script>",
+            "SELECT COUNT(*) FROM alerts WHERE DATE(timestamp) = CURDATE() AND locationid IN",
+            "<foreach collection='locationIds' item='locationId' open='(' separator=',' close=')'>",
+            "#{locationId}",
+            "</foreach>",
+            "</script>"
+    })
+    int getTodayAlertCountByLocationIds(@Param("locationIds") List<Integer> locationIds);
 
     // 标记告警为已处理
     @Update("UPDATE alerts SET handled = 1 WHERE id = #{alertId}")
@@ -44,4 +89,7 @@ public interface AlertMapper {
     // 根据设备编号删除告警记录
     @Delete("DELETE FROM alerts WHERE deviceid = #{deviceid}")
     int deleteAlertsByDeviceId(@Param("deviceid") String deviceid);
+
+    @Delete("DELETE FROM alerts WHERE ruleid = #{ruleId} AND handled = 0")
+    int deleteUnhandledAlertsByRuleId(@Param("ruleId") int ruleId);
 }

@@ -2,6 +2,8 @@ package ecnu.edu.iotbackend.service;
 
 import ecnu.edu.iotbackend.entity.User;
 
+import java.util.List;
+
 /**
  * 用户业务逻辑接口
  */
@@ -21,6 +23,12 @@ public interface UserService {
      * @return 用户信息
      */
     User getUserByUsername(String username);
+
+    User getCurrentUserProfile();
+
+    List<User> getAllUsers();
+
+    boolean assignRooms(int userId, List<Integer> roomIds);
 
     /**
      * 更新用户头像

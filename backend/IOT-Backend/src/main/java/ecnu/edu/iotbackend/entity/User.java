@@ -1,5 +1,8 @@
 package ecnu.edu.iotbackend.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class User {
 
     private int userId;
@@ -9,6 +12,8 @@ public class User {
     private String avatar;
     private String lastLoginTime;
     private String room;
+    private List<Integer> roomIds = new ArrayList<>();
+    private List<String> roomNames = new ArrayList<>();
 
     @Override
     public String toString() {
@@ -20,7 +25,25 @@ public class User {
                 ", avatar='" + avatar + '\'' +
                 ", lastLoginTime='" + lastLoginTime + '\'' +
                 ", room='" + room + '\'' +
+                ", roomIds=" + roomIds +
+                ", roomNames=" + roomNames +
                 '}';
+    }
+
+    public List<Integer> getRoomIds() {
+        return roomIds;
+    }
+
+    public void setRoomIds(List<Integer> roomIds) {
+        this.roomIds = roomIds;
+    }
+
+    public List<String> getRoomNames() {
+        return roomNames;
+    }
+
+    public void setRoomNames(List<String> roomNames) {
+        this.roomNames = roomNames;
     }
 
     public String getAvatar() {

@@ -1,30 +1,131 @@
 <template>
-  <div class="admin-container">
-    <!-- 主内容区 -->
-    <div class="main-content">
-      <div class="profile-column">
-        <img           
-          :src="selectedAvatar" 
-          alt="Profile Picture" 
-          style="width:200px;height:200px;border-radius:50%;cursor:pointer;margin-right:16px;">
-        <div class="user-info">
-          <span style="font-size: 24px; font-weight: bold;">{{ username }}</span>
+  <div class="admin-page">
+    <section class="profile-card">
+      <div class="profile-main">
+        <img :src="selectedAvatar" alt="avatar" class="avatar" />
+        <div>
+          <p class="eyebrow">个人信息</p>
+          <h1>{{ userInfo?.username || '-' }}</h1>
+          <p class="meta">角色：{{ userInfo?.role || '-' }}</p>
+          <p class="meta">上次登录时间：{{ userInfo?.lastLoginTime || '-' }}</p>
+          <p class="meta">
+            可访问房间：
+            {{ userInfo?.roomNames?.length ? userInfo.roomNames.join('，') : (isAdmin ? '全部房间' : '未分配房间') }}
+          </p>
         </div>
-        <button class="profile-edit-button" @click="showAvatarModal = true">修改头像</button>
       </div>
-      <div class="content-column">
-        <h1>{{ greeting }}, {{ username }}</h1>
-        <h3>现在是：{{ currentTime }}</h3>
-        <p>您的上次登录时间为：{{ userInfo?.lastLoginTime || '暂无记录' }}</p>
-        <p>您的管理员等级为：{{ userInfo?.role }}</p>
-        <p>您负责的房间为：{{ userInfo?.room }}</p>
 
-        <button class="button" @click="showPasswordModal = true">修改密码</button>
-        <button class="button" @click="handleLogout">退出登录</button>
+      <div class="profile-actions">
+        <button v-if="isAdmin" class="secondary-btn" @click="showRoomModal = true">房间管理</button>
+        <button class="secondary-btn" @click="showAvatarModal = true">更换头像</button>
+        <button class="secondary-btn" @click="showPasswordModal = true">修改密码</button>
+        <button class="danger-btn" @click="handleLogout">退出登录</button>
+      </div>
+    </section>
+
+    <section v-if="isAdmin" class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>房间分配</h2>
+          <p>管理员可为普通用户分配一个或多个房间。</p>
+        </div>
+      </div>
+
+      <div class="user-grid">
+        <article v-for="user in manageableUsers" :key="user.userId" class="user-card">
+          <div class="user-card-top">
+            <div>
+              <h3>{{ user.username }}</h3>
+              <p>{{ user.roomNames?.length ? user.roomNames.join('，') : '未分配房间' }}</p>
+            </div>
+          </div>
+
+          <el-select
+            v-model="roomSelection[user.userId]"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择房间"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="location in locations"
+              :key="location.id"
+              :label="location.displayName"
+              :value="location.id"
+            />
+          </el-select>
+
+          <button class="primary-btn" @click="saveRoomAssignment(user)" :disabled="savingUsers[user.userId]">
+            {{ savingUsers[user.userId] ? '保存中...' : '保存房间分配' }}
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <div v-if="showRoomModal" class="modal-overlay" @click="closeRoomModal">
+      <div class="modal-container room-modal" @click.stop>
+        <div class="modal-header">
+          <h2>房间管理</h2>
+          <button class="close-button" @click="closeRoomModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="room-manager-layout">
+            <section class="room-manager-card">
+              <div class="section-head">
+                <h3>新增房间</h3>
+                <p>按楼栋、楼层和房间号创建房间。</p>
+              </div>
+              <form class="room-form" @submit.prevent="submitCreateLocation">
+                <label class="modal-field">
+                  <span>楼栋</span>
+                  <input v-model.trim="locationForm.buildingname" type="text" maxlength="20" placeholder="如 A" />
+                </label>
+                <label class="modal-field">
+                  <span>楼层</span>
+                  <input v-model.number="locationForm.floornumber" type="number" min="1" placeholder="如 3" />
+                </label>
+                <label class="modal-field">
+                  <span>房间号</span>
+                  <input v-model.number="locationForm.roomnumber" type="number" min="1" placeholder="如 305" />
+                </label>
+                <label class="modal-field">
+                  <span>描述</span>
+                  <input v-model.trim="locationForm.description" type="text" maxlength="100" placeholder="可选" />
+                </label>
+                <button class="primary-btn" type="submit" :disabled="creatingLocation">
+                  {{ creatingLocation ? '创建中...' : '新增房间' }}
+                </button>
+              </form>
+            </section>
+
+            <section class="room-manager-card">
+              <div class="section-head">
+                <h3>现有房间</h3>
+                <p>删除前请先移除该房间下的设备和历史告警依赖。</p>
+              </div>
+              <div v-if="locations.length" class="room-list">
+                <article v-for="location in locations" :key="location.id" class="room-item">
+                  <div>
+                    <h4>{{ location.displayName }}</h4>
+                    <p>{{ location.description || '暂无描述' }}</p>
+                  </div>
+                  <button
+                    class="danger-btn danger-btn--small"
+                    :disabled="deletingLocationIds[location.id]"
+                    @click="removeLocation(location)"
+                  >
+                    {{ deletingLocationIds[location.id] ? '删除中...' : '删除' }}
+                  </button>
+                </article>
+              </div>
+              <div v-else class="empty-state">当前没有房间。</div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 密码更改框 -->
     <div class="modal-overlay" v-if="showPasswordModal" @click="showPasswordModal = false">
       <div class="modal-container" @click.stop>
         <div class="modal-header">
@@ -32,42 +133,25 @@
           <button class="close-button" @click="showPasswordModal = false">&times;</button>
         </div>
         <div class="modal-body">
-          <form @submit.prevent="submitPasswordChange" class="password-form" id="password-form">
-            <div class="label-group">
-              <label>当前密码:</label>
-              <label>新密码:</label>
-              <label>确认新密码:</label>
-            </div>
-            <div class="input-group">
-              <input  
-                type="password" 
-                id="currentPassword" 
-                v-model="currentPassword" 
-                required
-                autocomplete="new-password"   
-              >
-              <input 
-                type="password" 
-                id="newPassword" 
-                v-model="newPassword" 
-                required
-                autocomplete="new-password"
-              >
-              <input 
-                type="password" 
-                id="confirmPassword" 
-                v-model="confirmPassword" 
-                required
-                autocomplete="new-password"
-              >
-            </div>
+          <form id="password-form" @submit.prevent="submitPasswordChange">
+            <label class="modal-field">
+              <span>当前密码</span>
+              <input v-model="currentPassword" type="password" autocomplete="current-password" />
+            </label>
+            <label class="modal-field">
+              <span>新密码</span>
+              <input v-model="newPassword" type="password" autocomplete="new-password" />
+            </label>
+            <label class="modal-field">
+              <span>确认密码</span>
+              <input v-model="confirmPassword" type="password" autocomplete="new-password" />
+            </label>
           </form>
-          <button type="submit" class="button" form="password-form">提交</button>
+          <button class="primary-btn" type="submit" form="password-form">提交</button>
         </div>
       </div>
     </div>
 
-    <!-- 头像选择模态框 -->
     <div class="modal-overlay" v-if="showAvatarModal" @click="showAvatarModal = false">
       <div class="modal-container" @click.stop>
         <div class="modal-header">
@@ -75,360 +159,541 @@
           <button class="close-button" @click="showAvatarModal = false">&times;</button>
         </div>
         <div class="avatar-grid">
-          <div 
-            class="avatar-item" 
-            v-for="(avatar, index) in availableAvatars" 
-            :key="index"
+          <button
+            v-for="avatar in availableAvatars"
+            :key="avatar"
+            class="avatar-item"
             @click="selectAvatar(avatar)"
           >
-            <img :src="avatar" :alt="`Avatar ${index + 1}`" class="avatar-thumbnail">
-          </div>
+            <img :src="avatar" alt="avatar choice" class="avatar-thumbnail" />
+          </button>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import dataService from '../utils/dataService'
 import userService from '../utils/userService'
-import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+
 const userInfo = ref(null)
-const username = ref('')
-const currentTime = ref('')
-const userRole = ref('房间管理员') // 示例角色
-const userRoom = ref('101号房间') // 示例房间
-const lastLoginTime = ref('2024-06-01 10:00:00') // 示例上次登录时间
-const greeting = ref('')
+const users = ref([])
+const locations = ref([])
+const roomSelection = ref({})
+const savingUsers = ref({})
 
-// 头像相关状态
 const showAvatarModal = ref(false)
+const showPasswordModal = ref(false)
+const showRoomModal = ref(false)
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const creatingLocation = ref(false)
+const deletingLocationIds = ref({})
 
-// assets文件夹中的头像图片列表
-const availableAvatars = ref([
+const locationForm = ref({
+  buildingname: '',
+  floornumber: null,
+  roomnumber: null,
+  description: ''
+})
+
+const availableAvatars = [
   '/src/assets/avatar/fall.bmp',
   '/src/assets/avatar/avatar1-1.jpg',
   '/src/assets/avatar/avatar2-1.jpg',
   '/src/assets/avatar/avatar3-1.jpg',
   '/src/assets/avatar/avatar4-1.jpg',
   '/src/assets/avatar/avatar5-1.jpg'
-])
+]
 
-// 默认头像
-const selectedAvatar = ref('') 
+const selectedAvatar = ref('/src/assets/avatar/fall.bmp')
 
-// 密码修改相关状态
-const showPasswordModal = ref(false)
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
+const isAdmin = computed(() => ['admin', 'super_admin'].includes(userInfo.value?.role))
+const manageableUsers = computed(() => users.value.filter((user) => !['admin', 'super_admin'].includes(user.role)))
 
-// 提交密码修改
+const formatLocation = (location) => `${location.buildingname}-${location.floornumber}F-${location.roomnumber}`
+
+const hydrateRoomSelection = () => {
+  const nextSelection = {}
+  manageableUsers.value.forEach((user) => {
+    nextSelection[user.userId] = [...(user.roomIds || [])]
+  })
+  roomSelection.value = nextSelection
+}
+
+const resetLocationForm = () => {
+  locationForm.value = {
+    buildingname: '',
+    floornumber: null,
+    roomnumber: null,
+    description: ''
+  }
+}
+
+const loadCurrentUser = async () => {
+  const user = await userService.fetchCurrentUser()
+  userInfo.value = user
+  selectedAvatar.value = user?.avatar || '/src/assets/avatar/fall.bmp'
+}
+
+const loadLocations = async () => {
+  const locationList = await dataService.getAllLocations()
+  locations.value = (locationList || []).map((location) => ({
+    ...location,
+    displayName: formatLocation(location)
+  }))
+}
+
+const loadUsers = async () => {
+  if (!isAdmin.value) {
+    users.value = []
+    roomSelection.value = {}
+    return
+  }
+
+  users.value = await userService.getAllUsers()
+  hydrateRoomSelection()
+}
+
+const reloadAdminData = async () => {
+  await loadLocations()
+  await loadUsers()
+}
+
+const closeRoomModal = () => {
+  showRoomModal.value = false
+  resetLocationForm()
+}
+
 const submitPasswordChange = async () => {
-  if(!userInfo.value) return 
-  
-  // 前端基础验证
+  if (!userInfo.value) {
+    return
+  }
   if (newPassword.value !== confirmPassword.value) {
-    ElMessage.error('新密码和确认密码不匹配')
+    ElMessage.error('两次输入的新密码不一致')
     return
   }
   if (newPassword.value.length < 6) {
-    ElMessage.error('新密码长度不能少于6位')
+    ElMessage.error('新密码长度不能少于 6 位')
     return
   }
-  try {
-    // 调用userService修改密码
-    const result = await userService.changePassword(
-      userInfo.value.userId,
-      currentPassword.value,
-      newPassword.value
-    )
 
-    if(result === true) {
-      ElMessage.success('密码修改成功')
-      showPasswordModal.value = false
-      // 清空密码输入框
-      currentPassword.value = ''
-      newPassword.value = ''
-      confirmPassword.value = ''
-    } else {
-      ElMessage.error(result)
-    }
-  } catch (err) {
-    console.error('修改密码失败:', err)
-    ElMessage.error('修改密码发生错误，请联系管理员')
-  }
-}
-
-// 更新时间函数
-const updateTime = () => {
-  const date = new Date()
-  currentTime.value = (
-    date.getFullYear() + '-' +
-    (date.getMonth() + 1).toString().padStart(2, '0') + '-' +
-    date.getDate().toString().padStart(2, '0') + ' ' +
-    date.getHours().toString().padStart(2, '0') + ':' +
-    date.getMinutes().toString().padStart(2, '0') + ':' +
-    date.getSeconds().toString().padStart(2, '0')
+  const result = await userService.changePassword(
+    userInfo.value.userId,
+    currentPassword.value,
+    newPassword.value
   )
-}
 
-// 获取时间段问候语
-const getGreeting = () => {
-  const hour = new Date().getHours()
-  if (hour < 4) return '夜深了'
-  if (hour < 9) return '早上好'
-  if (hour < 12) return '上午好'
-  if (hour < 14) return '中午好'
-  if (hour < 17) return '下午好'
-  if (hour < 24) return '晚上好'
-}
-
-// 获取用户名
-const loadUserInfo = async () => {
-  // 1. 获取本地存储的用户信息和登录状态
-  const storedUserStr = localStorage.getItem('user');
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-
-  // 2. 未登录或无用户信息 → 跳转到登录页
-  if (!isLoggedIn || !storedUserStr) {
-    router.push('/login');
-    return;
+  if (result === true) {
+    ElMessage.success('密码修改成功')
+    showPasswordModal.value = false
+    currentPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+    return
   }
 
-  // 3. 解析本地存储的用户信息（JSON字符串转对象）
-  const user = JSON.parse(storedUserStr);
-  userInfo.value = user;
-
-  // 4. 渲染页面数据（字段与后端返回一致）
-  username.value = user.username || '';
-  // 头像：优先用用户信息中的，没有则用默认图
-  selectedAvatar.value = user.avatar || '/src/assets/avatar/fall.bmp';
-  // 最后登录时间：后端返回则用，没有则显示首次登录
-  lastLoginTime.value = user.lastLoginTime || '首次登录';
-  // 角色：后端返回则用，没有则用默认
-  userRole.value = user.role || '房间管理员';
-  // 房间：后端返回则用，没有则用默认
-  userRoom.value = user.room || '101号房间';
-
-  // 设置问候语
-  greeting.value = getGreeting();
+  ElMessage.error(result)
 }
 
-// 退出登录
-const handleLogout = () => {
-  localStorage.removeItem('isLoggedIn')
-  localStorage.removeItem('user') // 清除用户
-  router.push('/login')
-}
-
-// 选择头像
 const selectAvatar = async (avatar) => {
-  if(!userInfo.value) return
+  if (!userInfo.value) {
+    return
+  }
 
-  try {
-    // 更新用户头像信息
-    const result = await userService.updateUserAvatar(userInfo.value.userId, avatar)
-    if(result === true) {
-      selectedAvatar.value = avatar  // 更新本地存储的用户信息
-      ElMessage.success('头像更新成功')
-    } else {
-      ElMessage.error('头像更新失败')
-    }
-  } catch (err) {
-    console.error('更新头像失败:', err)
-    ElMessage.error('头像更新失败，请重试')
+  const result = await userService.updateUserAvatar(userInfo.value.userId, avatar)
+  if (result) {
+    selectedAvatar.value = avatar
+    await loadCurrentUser()
+    ElMessage.success('头像更新成功')
+  } else {
+    ElMessage.error('头像更新失败')
   }
   showAvatarModal.value = false
 }
 
-// 组件挂载时加载用户信息和更新时间
-onMounted(() => {
-  loadUserInfo()
-  updateTime()
-  setInterval(updateTime, 1000) // 每秒更新时间
-  
+const saveRoomAssignment = async (user) => {
+  savingUsers.value = { ...savingUsers.value, [user.userId]: true }
+
+  try {
+    const ok = await userService.assignRooms(user.userId, roomSelection.value[user.userId] || [])
+    if (!ok) {
+      ElMessage.error(`更新 ${user.username} 的房间分配失败`)
+      return
+    }
+
+    ElMessage.success(`已更新 ${user.username} 的房间分配`)
+    await loadUsers()
+  } finally {
+    savingUsers.value = { ...savingUsers.value, [user.userId]: false }
+  }
+}
+
+const submitCreateLocation = async () => {
+  const buildingname = locationForm.value.buildingname.trim()
+  const floornumber = Number(locationForm.value.floornumber)
+  const roomnumber = Number(locationForm.value.roomnumber)
+
+  if (!buildingname) {
+    ElMessage.error('请输入楼栋')
+    return
+  }
+  if (!Number.isInteger(floornumber) || floornumber <= 0) {
+    ElMessage.error('请输入正确的楼层')
+    return
+  }
+  if (!Number.isInteger(roomnumber) || roomnumber <= 0) {
+    ElMessage.error('请输入正确的房间号')
+    return
+  }
+
+  creatingLocation.value = true
+  try {
+    const created = await dataService.createLocation({
+      buildingname,
+      floornumber,
+      roomnumber,
+      description: locationForm.value.description.trim()
+    })
+
+    if (!created) {
+      ElMessage.error('新增房间失败')
+      return
+    }
+
+    ElMessage.success(`已新增房间 ${formatLocation(created)}`)
+    resetLocationForm()
+    await reloadAdminData()
+  } finally {
+    creatingLocation.value = false
+  }
+}
+
+const removeLocation = async (location) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除房间 ${location.displayName} 吗？`,
+      '删除房间',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  deletingLocationIds.value = { ...deletingLocationIds.value, [location.id]: true }
+  try {
+    const result = await dataService.deleteLocation(location.id)
+    if (!result.success) {
+      ElMessage.error(result.msg || '删除房间失败')
+      return
+    }
+
+    ElMessage.success(`已删除房间 ${location.displayName}`)
+    await reloadAdminData()
+  } finally {
+    deletingLocationIds.value = { ...deletingLocationIds.value, [location.id]: false }
+  }
+}
+
+const handleLogout = () => {
+  userService.logout()
+  router.replace('/login')
+}
+
+onMounted(async () => {
+  await loadCurrentUser()
+  await loadLocations()
+  await loadUsers()
 })
 </script>
 
-<style scoped>  
-.admin-container {
-  background: #f5f6fa;
-  color: #222;
-  display: flex;
-  margin:0;
-  /* 水平居中（主轴居中） */
-  justify-content: center;
-  /* 垂直居中（/交叉轴居中） */
-  align-items: center;
-  padding: 40px 0;
-
-}
-.main-content {
-  display: flex;
-  width:60rem;
-  flex-direction: row;
-  gap: 32px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: var(--card-shadow);
-}
-.profile-column {
-  width: 15rem;
+<style scoped>
+.admin-page {
   display: flex;
   flex-direction: column;
-  padding-left: 50px;
-  padding-top: 50px;
-  padding-bottom: 50px;
-  padding-right: 10px;
-  border-radius: 16px;
+  gap: 24px;
+}
+
+.profile-card,
+.panel {
+  background: #fff;
+  border-radius: 20px;
   box-shadow: var(--card-shadow);
+  padding: 28px;
 }
-.user-info {
-  font-size: 20px;
-  color: #000000;
-  margin-top: 16px;
-  text-align: left;
+
+.profile-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
 }
-.content-column {
-  width: auto;
-  text-align: left;
-  padding-bottom: 24px;
-  padding-right: 12px;
-  /* background: #fff;
-  border-radius: 8px;
-  box-shadow: var(--card-shadow); */
+
+.profile-main {
+  display: flex;
+  align-items: center;
+  gap: 22px;
 }
-.button {
-  display: inline-block; /* 使按钮横向排列 */
-  margin-right: 32px; /* 按钮间距 */
-  margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+
+.avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
 }
-.profile-edit-button {
-  width: 200px;
-  margin-top: 16px;
-  padding: 8px 16px;
-  background-color: #f5f6fa;
-  color: rgb(88, 88, 88);
-  border: 1px solid #c2c3c7;
-  border-radius: 4px;
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #6b7d8b;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+}
+
+.profile-main h1,
+.panel-header h2,
+.user-card h3,
+.section-head h3,
+.room-item h4 {
+  margin: 0;
+}
+
+.meta,
+.panel-header p,
+.user-card p,
+.section-head p,
+.room-item p {
+  color: #607280;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.primary-btn,
+.secondary-btn,
+.danger-btn {
+  min-width: 132px;
+  height: 42px;
+  border-radius: 12px;
+  border: 0;
   cursor: pointer;
 }
 
+.primary-btn {
+  background: #18456b;
+  color: #fff;
+}
 
-/* 模态框样式 */
+.secondary-btn {
+  background: #edf4fa;
+  color: #18456b;
+}
+
+.danger-btn {
+  background: #b93d3d;
+  color: #fff;
+}
+
+.danger-btn--small {
+  min-width: 84px;
+  height: 38px;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.danger-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.user-card {
+  border: 1px solid #e5edf2;
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
+
 .modal-container {
-  background-color: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 800px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: min(560px, calc(100vw - 32px));
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
 }
+
+.room-modal {
+  width: min(920px, calc(100vw - 32px));
+}
+
 .modal-header {
-  padding: 8px 24px;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid #edf1f4;
 }
-.modal-header h2 {
-  margin: 0;
-  font-size: 20px;
-  color: #333;
-}
+
 .close-button {
-  background: none;
-  border: none;
-  font-size: 24px;
+  border: 0;
+  background: transparent;
+  font-size: 28px;
   cursor: pointer;
-  color: #999;
-  transition: color 0.2s;
-}
-.close-button:hover {
-  color: #333;
-}
-.avatar-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 16px;
-  padding: 24px;
-}
-.avatar-item {
-  cursor: pointer;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.avatar-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-.avatar-thumbnail {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  display: block;
 }
 
 .modal-body {
-  padding: 32px;
+  padding: 24px;
 }
-.password-form {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
+
+.modal-field {
+  display: block;
   margin-bottom: 16px;
 }
-.label-group {
-  display: flex;
-  width: 100px; 
-  flex-direction: column; 
-  align-items: flex-start; 
-  gap: 16px;
+
+.modal-field span {
+  display: block;
+  margin-bottom: 8px;
 }
-.label-group label {
-  height: 32px;
-  line-height: 32px;
-}
-.input-group {
-  display: flex;
-  width: 240px; 
-  flex-direction: column; 
-  align-items: flex-start; 
-  gap: 16px;
-}
-.input-group input {
+
+.modal-field input {
   width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-  box-sizing: border-box;
-  line-height: 1;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #c9d6df;
+  padding: 0 12px;
 }
-</style>  
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding: 24px;
+}
+
+.avatar-item {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.avatar-thumbnail {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.room-manager-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.room-manager-card {
+  border: 1px solid #e5edf2;
+  border-radius: 18px;
+  padding: 18px;
+  background: #fbfdff;
+}
+
+.section-head {
+  margin-bottom: 18px;
+}
+
+.room-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.room-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid #e5edf2;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.empty-state {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7d8b;
+  border: 1px dashed #c9d6df;
+  border-radius: 14px;
+}
+
+@media (max-width: 900px) {
+  .profile-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-actions {
+    justify-content: flex-start;
+  }
+
+  .room-manager-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .avatar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .room-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>

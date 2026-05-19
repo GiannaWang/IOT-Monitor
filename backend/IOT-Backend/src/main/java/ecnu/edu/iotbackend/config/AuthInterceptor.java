@@ -1,5 +1,6 @@
 package ecnu.edu.iotbackend.config;
 
+import ecnu.edu.iotbackend.security.CurrentUserProvider;
 import ecnu.edu.iotbackend.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,6 +29,8 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             if (jwtUtil.isValid(token)) {
+                request.setAttribute(CurrentUserProvider.ATTR_USERNAME, jwtUtil.getUsername(token));
+                request.setAttribute(CurrentUserProvider.ATTR_ROLE, jwtUtil.getRole(token));
                 return true;
             }
         }

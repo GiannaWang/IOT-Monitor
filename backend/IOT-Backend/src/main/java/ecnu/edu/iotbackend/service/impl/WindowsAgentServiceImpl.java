@@ -15,6 +15,13 @@ import java.time.LocalDateTime;
 @Service
 public class WindowsAgentServiceImpl implements WindowsAgentService {
 
+    private static final String COMPUTER_TYPE = "\u8ba1\u7b97\u673a";
+    private static final String POWER_STATE_TYPE = "\u7535\u6e90\u72b6\u6001";
+    private static final String NORMAL_STATUS = "\u6b63\u5e38";
+    private static final String CPU_TYPE = "\u0043\u0050\u0055\u4f7f\u7528\u7387";
+    private static final String MEMORY_TYPE = "\u5185\u5b58\u4f7f\u7528\u7387";
+    private static final String DISK_TYPE = "\u78c1\u76d8\u4f7f\u7528\u7387";
+
     @Autowired
     private SensorDeviceMapper sensorDeviceMapper;
 
@@ -23,11 +30,10 @@ public class WindowsAgentServiceImpl implements WindowsAgentService {
 
     @Override
     public void handleHeartbeat(WindowsHeartbeatRequest req) {
-        // 1. 注册或更新设备记录
         SensorDevice device = new SensorDevice();
         device.setDeviceid(req.getMachineId());
         device.setDevicename(req.getHostname());
-        device.setSensortype("计算机");
+        device.setSensortype(COMPUTER_TYPE);
         device.setSource(req.getIpAddress() + " / " + req.getUsername());
         device.setStatus("online");
         device.setDatareportinterval(req.getReportInterval() != null ? req.getReportInterval() : 60);
@@ -35,22 +41,22 @@ public class WindowsAgentServiceImpl implements WindowsAgentService {
 
         sensorDeviceMapper.upsertWindowsMachine(device);
 
-        // 2. 查询数据库 id（ON DUPLICATE KEY UPDATE 不总会更新 id）
         SensorDevice saved = sensorDeviceMapper.getDeviceByDeviceId(req.getMachineId());
-        if (saved == null || req.getMetrics() == null) return;
+        if (saved == null || req.getMetrics() == null) {
+            return;
+        }
 
         int dbDeviceId = saved.getId();
         LocalDateTime now = LocalDateTime.now();
 
-        // 3. 插入每个指标为一条 sensor_datas 记录
         for (WindowsHeartbeatRequest.MetricItem metric : req.getMetrics()) {
             SensorData data = new SensorData();
             data.setDeviceId(dbDeviceId);
-            data.setDataType(metric.getType());
+            data.setDataType(normalizeMetricType(metric.getType()));
             data.setValue(metric.getValue());
             data.setUnit(metric.getUnit() != null ? metric.getUnit() : "%");
             data.setTimeStamp(now);
-            data.setStatus("正常");
+            data.setStatus(NORMAL_STATUS);
             sensorDataMapper.insertSensorData(data);
         }
     }
@@ -58,24 +64,40 @@ public class WindowsAgentServiceImpl implements WindowsAgentService {
     @Override
     public void handleEvent(WindowsEventRequest req) {
         SensorDevice device = sensorDeviceMapper.getDeviceByDeviceId(req.getMachineId());
-        if (device == null) return;
+        if (device == null) {
+            return;
+        }
 
         String eventType = req.getEventType();
         LocalDateTime now = LocalDateTime.now();
-
-        // 更新设备在线状态
-        String newStatus = (eventType.equals("startup") || eventType.equals("wake")) ? "online" : "offline";
+        String newStatus = ("startup".equals(eventType) || "wake".equals(eventType)) ? "online" : "offline";
         sensorDeviceMapper.updateDeviceStatus(req.getMachineId(), newStatus, now);
 
-        // 写入电源状态记录（startup/wake=1, shutdown/sleep=0）
-        float stateValue = (eventType.equals("startup") || eventType.equals("wake")) ? 1.0f : 0.0f;
+        float stateValue = ("startup".equals(eventType) || "wake".equals(eventType)) ? 1.0f : 0.0f;
         SensorData data = new SensorData();
         data.setDeviceId(device.getId());
-        data.setDataType("电源状态");
+        data.setDataType(POWER_STATE_TYPE);
         data.setValue(stateValue);
         data.setUnit(eventType);
         data.setTimeStamp(now);
-        data.setStatus("正常");
+        data.setStatus(NORMAL_STATUS);
         sensorDataMapper.insertSensorData(data);
+    }
+
+    private String normalizeMetricType(String type) {
+        if (type == null) {
+            return null;
+        }
+
+        switch (type.trim().toLowerCase()) {
+            case "cpu":
+                return CPU_TYPE;
+            case "memory":
+                return MEMORY_TYPE;
+            case "disk":
+                return DISK_TYPE;
+            default:
+                return type;
+        }
     }
 }

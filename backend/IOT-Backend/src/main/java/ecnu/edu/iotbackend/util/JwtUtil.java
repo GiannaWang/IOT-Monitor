@@ -54,4 +54,9 @@ public class JwtUtil {
     public String getUsername(String token) {
         return parseToken(token).getSubject();
     }
+
+    public String getRole(String token) {
+        Object role = parseToken(token).get("role");
+        return role == null ? null : role.toString();
+    }
 }

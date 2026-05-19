@@ -5,10 +5,12 @@ import ecnu.edu.iotbackend.entity.SensorDevice;
 import ecnu.edu.iotbackend.mapper.SensorDeviceMapper;
 import ecnu.edu.iotbackend.service.HAService;
 import ecnu.edu.iotbackend.service.SensorDeviceService;
+import ecnu.edu.iotbackend.security.CurrentUserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,9 +23,23 @@ public class SensorDeviceServiceImpl implements SensorDeviceService {
     @Autowired
     private HAService haService;
 
+    @Autowired
+    private CurrentUserProvider currentUserProvider;
+
     @Override
     public List<SensorDevice> getAllEnabledDevices() {
-        return sensorDeviceMapper.getAllDevices();
+        if (currentUserProvider.isAdmin()) {
+            return sensorDeviceMapper.getAllDevices();
+        }
+
+        List<Integer> roomIds = currentUserProvider.getAccessibleRoomIds();
+        if (roomIds == null) {
+            return sensorDeviceMapper.getAllDevices();
+        }
+        if (roomIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return sensorDeviceMapper.getDevicesByLocationIds(roomIds);
     }
 
     @Override
@@ -81,7 +97,19 @@ public class SensorDeviceServiceImpl implements SensorDeviceService {
 
     @Override
     public SensorDevice getDeviceById(Integer id) {
-        return sensorDeviceMapper.getDeviceById(id);
+        SensorDevice device = sensorDeviceMapper.getDeviceById(id);
+        if (device == null) {
+            return null;
+        }
+        if (currentUserProvider.isAdmin()) {
+            return device;
+        }
+
+        List<Integer> roomIds = currentUserProvider.getAccessibleRoomIds();
+        if (roomIds != null && roomIds.contains(device.getLocationid())) {
+            return device;
+        }
+        return null;
     }
 
     @Override

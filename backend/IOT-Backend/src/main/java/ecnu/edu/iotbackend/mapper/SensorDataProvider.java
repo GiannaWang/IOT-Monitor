@@ -11,12 +11,15 @@ public class SensorDataProvider {
     public String getSensorDataWithFilters(Map<String, Object> params) {
         Integer locationId = params.get("locationId") != null
                 ? Integer.parseInt(params.get("locationId").toString()) : null;
+        @SuppressWarnings("unchecked")
+        java.util.List<Integer> accessibleRoomIds = (java.util.List<Integer>) params.get("accessibleRoomIds");
         String period    = (String) params.get("period");
         String timeSlot  = (String) params.get("timeSlot");
 
         StringBuilder sql = new StringBuilder("SELECT sd.* FROM sensor_datas sd ");
+        boolean needJoinDevice = locationId != null || accessibleRoomIds != null;
 
-        if (locationId != null) {
+        if (needJoinDevice) {
             sql.append("JOIN sensor_devices dev ON sd.deviceid = dev.id ");
         }
 
@@ -24,6 +27,17 @@ public class SensorDataProvider {
 
         if (locationId != null) {
             sql.append("AND dev.locationid = #{locationId} ");
+        }
+
+        if (accessibleRoomIds != null) {
+            if (accessibleRoomIds.isEmpty()) {
+                sql.append("AND 1 = 0 ");
+            } else {
+                sql.append("AND dev.locationid IN ");
+                sql.append("<foreach collection='accessibleRoomIds' item='roomId' open='(' separator=',' close=')'>");
+                sql.append("#{roomId}");
+                sql.append("</foreach> ");
+            }
         }
 
         if (period != null && !period.isEmpty()) {

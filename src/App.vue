@@ -1,36 +1,41 @@
 <template>
-  <div class="dashboard-container">
-    <!-- 侧边栏 -->
+  <router-view v-if="isLoginPage" />
+
+  <div v-else class="dashboard-container">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h2>物联网监测系统</h2>
+        <h2>物联网检测系统</h2>
+        <p>{{ ['admin', 'super_admin'].includes(currentUser?.role) ? '管理员' : '用户工作台' }}</p>
       </div>
+
       <nav class="sidebar-nav">
         <ul>
-          <li :class="{ active: $route.path === '/dashboard' }" >
-            <router-link to="/dashboard" class="nav-link" >首页仪表盘</router-link>
+          <li :class="{ active: $route.path === '/dashboard' }">
+            <router-link to="/dashboard" class="nav-link">首页仪表盘</router-link>
           </li>
-          <li :class="{ active: $route.path === '/device-manager' }" >
-            <router-link to="/device-manager" class="nav-link" >设备管理</router-link>
+          <li :class="{ active: $route.path === '/device-manager' }">
+            <router-link to="/device-manager" class="nav-link">设备管理</router-link>
           </li>
-          <li :class="{ active: $route.path === '/data-analysis' }" >
-            <router-link to="/data-analysis" class="nav-link" >数据分析</router-link>
+          <li :class="{ active: $route.path === '/data-analysis' }">
+            <router-link to="/data-analysis" class="nav-link">数据分析</router-link>
           </li>
-          <li :class="{ active: $route.path === '/alarmcentre' }" >
-            <router-link to="/alarmcentre" class="nav-link" >告警中心</router-link>
+          <li :class="{ active: $route.path === '/alarmcentre' }">
+            <router-link to="/alarmcentre" class="nav-link">告警中心</router-link>
           </li>
         </ul>
       </nav>
+
       <nav class="sidebar-footer">
         <ul>
-          <li :class="{ active: $route.path === '/admin' }" >
-            <router-link to="/admin" class="nav-link" >管理员</router-link>
+          <li :class="{ active: $route.path === '/admin' }">
+            <router-link to="/admin" class="nav-link">
+              {{ ['admin', 'super_admin'].includes(currentUser?.role) ? '个人信息' : '个人信息' }}
+            </router-link>
           </li>
         </ul>
       </nav>
     </aside>
 
-    <!-- 主内容区：根据 currentMenu 显示不同组件 -->
     <main class="main-content">
       <router-view />
     </main>
@@ -38,107 +43,88 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import userService from './utils/userService'
+
+const route = useRoute()
+
+const isLoginPage = computed(() => route.path === '/login')
+const currentUser = computed(() => userService.getStoredUser())
 </script>
 
 <style scoped>
 .dashboard-container {
   display: flex;
-  align-items: stretch;
-  justify-content: flex-start; /* 让侧边栏和内容区紧贴左侧 */
   width: 100vw;
   height: 100vh;
   background: #f5f6fa;
-  box-sizing: border-box;
 }
+
 .main-content {
-  flex: 1;                /* 让主内容区占满剩余宽度 */
-  padding: 32px; 
+  flex: 1;
+  padding: 32px;
   background: #f5f6fa;
   color: #222;
-  overflow-y: auto;       /* 内容超出时滚动 */
-  min-width: 0;           /* 解决 Flex 子元素溢出问题 */
+  overflow-y: auto;
+  min-width: 0;
 }
+
 .sidebar {
-  width: 220px;
-  background: #2c3e50;
+  width: 240px;
+  background: linear-gradient(180deg, #1f3447 0%, #15222f 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
 }
+
 .sidebar-header {
-  height: 60px;
-  background: #22313f;
-  color: #fff;
-  text-align: center;
-  font-size: 16px;
-  font-weight: bold;
-  padding: 24px 0;
+  padding: 28px 22px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.sidebar-nav ul {
-  list-style: none;
-  padding: 0;
+
+.sidebar-header h2 {
   margin: 0;
+  font-size: 22px;
 }
-.sidebar-nav li {
-  padding: 0;
-  text-align: center;
-  color: #cfd8dc;
-  cursor: pointer;
-  
+
+.sidebar-header p {
+  margin: 8px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
 }
-.sidebar-nav li.active,
-.sidebar-nav li:hover {
-  background: #34495e;
-  color: #fff;
-  font-weight: bold;
-}
-/* 让 router-link 占满整个 li 区域 */
-.sidebar .nav-link {
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 16px 0;
-  color: inherit;         /* 继承父级颜色 */
-  text-decoration: none;  /* 去掉下划线 */
-}
-li.active .nav-link,
-li:hover .nav-link {
-  color: #fff;
-}
-.sidebar-footer {
-  background: #22313f;
-  color: #fff;
-  font-size: 16px;
-  margin-top: auto;     /* 推到最底部 */
-  width: 100%;          /* 确保宽度充满 */
-}
+
+.sidebar-nav ul,
 .sidebar-footer ul {
   list-style: none;
   padding: 0;
   margin: 0;
-  width: 100%;          /* 确保ul充满父容器 */
 }
+
+.sidebar-nav li,
 .sidebar-footer li {
-  padding: 0;
-  text-align: center;
-  color: #cfd8dc;
-  cursor: pointer;
-  width: 100%;            /* 让li充满整个宽度 */
-  box-sizing: border-box; /* 确保padding不会导致溢出 */
+  margin: 6px 12px;
+  border-radius: 12px;
 }
+
+.sidebar-nav li.active,
+.sidebar-nav li:hover,
 .sidebar-footer li.active,
 .sidebar-footer li:hover {
-  background: #263546;
-  color: #fff;
-  font-weight: bold;
+  background: rgba(255, 255, 255, 0.12);
 }
-.sidebar-footer .nav-link {
+
+.nav-link {
   display: block;
-  width: 100%;
-  height: 100%;
-  padding: 20px 0;
-  color: inherit;         /* 继承父级颜色 */
-  text-decoration: none;  /* 去掉下划线 */
+  padding: 14px 18px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-bottom: 16px;
 }
 </style>

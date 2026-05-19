@@ -24,6 +24,17 @@ public interface SensorDeviceMapper {
     @Select("SELECT * FROM sensor_devices")
     List<SensorDevice> getAllDevices();
 
+    @Select({
+            "<script>",
+            "SELECT * FROM sensor_devices WHERE locationid IN",
+            "<foreach collection='locationIds' item='locationId' open='(' separator=',' close=')'>",
+            "#{locationId}",
+            "</foreach>",
+            "ORDER BY id",
+            "</script>"
+    })
+    List<SensorDevice> getDevicesByLocationIds(@Param("locationIds") List<Integer> locationIds);
+
     /**
      * 根据 ID 获取设备
      */
@@ -35,6 +46,9 @@ public interface SensorDeviceMapper {
      */
     @Select("SELECT * FROM sensor_devices WHERE deviceid = #{deviceid}")
     SensorDevice getDeviceByDeviceId(String deviceid);
+
+    @Select("SELECT COUNT(*) FROM sensor_devices WHERE locationid = #{locationId}")
+    int countByLocationId(@Param("locationId") Integer locationId);
 
     /**
      * 删除设备（禁用设备）

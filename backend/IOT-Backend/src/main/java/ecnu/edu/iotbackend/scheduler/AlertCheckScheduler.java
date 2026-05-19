@@ -5,9 +5,9 @@ import ecnu.edu.iotbackend.entity.AlertRule;
 import ecnu.edu.iotbackend.entity.SensorData;
 import ecnu.edu.iotbackend.entity.SensorDevice;
 import ecnu.edu.iotbackend.mapper.AlertMapper;
-import ecnu.edu.iotbackend.mapper.AlertRuleMapper;
 import ecnu.edu.iotbackend.mapper.SensorDataMapper;
 import ecnu.edu.iotbackend.mapper.SensorDeviceMapper;
+import ecnu.edu.iotbackend.service.AlertRuleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,19 +16,26 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * 告警检测定时任务
- * 每5分钟扫描一次传感器数据，与 alert_rules 对比，超阈值则生成告警记录
- */
 @Component
 public class AlertCheckScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(AlertCheckScheduler.class);
 
+    private static final String SENSOR_TEMPERATURE = "\u6e29\u5ea6";
+    private static final String SENSOR_HUMIDITY = "\u6e7f\u5ea6";
+    private static final String SENSOR_CPU = "CPU\u4f7f\u7528\u7387";
+    private static final String SENSOR_MEMORY = "\u5185\u5b58\u4f7f\u7528\u7387";
+    private static final String SENSOR_DISK = "\u78c1\u76d8\u4f7f\u7528\u7387";
+    private static final String SENSOR_DEVICE = "device";
+    private static final String ALERT_DEVICE_OFFLINE = "\u8bbe\u5907\u79bb\u7ebf";
+
     @Autowired
-    private AlertRuleMapper alertRuleMapper;
+    private AlertRuleService alertRuleService;
 
     @Autowired
     private SensorDeviceMapper sensorDeviceMapper;
@@ -39,101 +46,124 @@ public class AlertCheckScheduler {
     @Autowired
     private AlertMapper alertMapper;
 
-    /**
-     * 每5分钟执行一次告警检测
-     */
     @Scheduled(fixedRate = 5 * 60 * 1000)
     public void checkAlerts() {
-        logger.info("=== 开始告警检测 ===");
+        logger.info("=== Start alert check ===");
 
-        List<AlertRule> rules = alertRuleMapper.getAllRules();
+        List<AlertRule> rules = alertRuleService.getEnabledRulesForScheduling();
         if (rules.isEmpty()) {
-            logger.warn("告警规则表为空，跳过检测");
+            logger.warn("Skip alert check because no enabled rules were found");
             return;
         }
 
         List<SensorDevice> devices = sensorDeviceMapper.getAllDevices();
         if (devices.isEmpty()) {
-            logger.info("暂无设备，跳过告警检测");
+            logger.info("Skip alert check because no devices were found");
             return;
         }
 
-        int alertCount = 0;
+        Map<String, AlertRule> globalRules = new HashMap<>();
+        Map<Integer, Map<String, AlertRule>> roomRules = new HashMap<>();
+        List<String> sensorTypes = new ArrayList<>();
+
         for (AlertRule rule : rules) {
-            if ("device".equals(rule.getSensorType())) {
-                alertCount += checkDeviceOffline(rule, devices);
-            } else {
-                alertCount += checkSensorThreshold(rule, devices);
+            String sensorType = rule.getSensorType();
+            if (SENSOR_DEVICE.equals(sensorType)) {
+                putRule(globalRules, roomRules, rule, sensorType);
+                continue;
             }
+
+            if (!sensorTypes.contains(sensorType)) {
+                sensorTypes.add(sensorType);
+            }
+            putRule(globalRules, roomRules, rule, sensorType);
         }
 
-        logger.info("=== 告警检测完成，本次新增告警: {} 条 ===", alertCount);
-    }
-
-    /**
-     * 检测传感器数据是否超阈值
-     */
-    private int checkSensorThreshold(AlertRule rule, List<SensorDevice> devices) {
-        int count = 0;
+        int alertCount = 0;
         for (SensorDevice device : devices) {
-            // 获取该设备对应类型的最新数据
-            SensorData latest = sensorDataMapper.getLatestDataByDeviceAndType(
-                    device.getId(), rule.getSensorType());
-            if (latest == null) continue;
-
-            if (isThresholdExceeded(latest.getValue(), rule.getRuleCondition())) {
-                // 防重复：1小时内同设备同类型未处理告警已存在则跳过
-                if (alertMapper.countRecentUnhandledAlerts(device.getDeviceid(), rule.getRuleName()) > 0) {
-                    continue;
-                }
-
-                Alert alert = buildSensorAlert(device, rule, latest.getValue());
-                alertMapper.insertAlert(alert);
-                logger.warn("【告警】{} - 设备: {}, 值: {}{}, 规则: {}",
-                        rule.getRuleName(), device.getDevicename(),
-                        latest.getValue(), getSensorUnit(rule.getSensorType()),
-                        rule.getRuleCondition());
-                count++;
+            alertCount += checkDeviceOffline(resolveRule(device.getLocationid(), SENSOR_DEVICE, roomRules, globalRules), device);
+            for (String sensorType : sensorTypes) {
+                alertCount += checkSensorThreshold(resolveRule(device.getLocationid(), sensorType, roomRules, globalRules), device);
             }
         }
-        return count;
+
+        logger.info("=== Alert check complete, created {} new alerts ===", alertCount);
     }
 
-    /**
-     * 检测设备是否离线（超过上报间隔×3未上报）
-     */
-    private int checkDeviceOffline(AlertRule rule, List<SensorDevice> devices) {
-        int count = 0;
-        for (SensorDevice device : devices) {
-            if (device.getTimestamp() == null || device.getDatareportinterval() == null) continue;
-
-            long secondsSinceLastReport = ChronoUnit.SECONDS.between(
-                    device.getTimestamp(), LocalDateTime.now());
-            long offlineThreshold = (long) device.getDatareportinterval() * 3;
-
-            if (secondsSinceLastReport > offlineThreshold) {
-                if (alertMapper.countRecentUnhandledAlerts(device.getDeviceid(), "设备离线") > 0) {
-                    continue;
-                }
-
-                Alert alert = buildOfflineAlert(device, rule, secondsSinceLastReport);
-                alertMapper.insertAlert(alert);
-                logger.warn("【设备离线】设备: {}, 已 {}秒 未上报（阈值: {}秒）",
-                        device.getDevicename(), secondsSinceLastReport, offlineThreshold);
-                count++;
-            }
+    private void putRule(Map<String, AlertRule> globalRules,
+                         Map<Integer, Map<String, AlertRule>> roomRules,
+                         AlertRule rule,
+                         String sensorType) {
+        if (rule.getLocationId() == null) {
+            globalRules.put(sensorType, rule);
+        } else {
+            roomRules.computeIfAbsent(rule.getLocationId(), key -> new HashMap<>()).put(sensorType, rule);
         }
-        return count;
     }
 
-    // ===== 构建告警对象 =====
+    private int checkSensorThreshold(AlertRule rule, SensorDevice device) {
+        if (rule == null) {
+            return 0;
+        }
+
+        SensorData latest = sensorDataMapper.getLatestDataByDeviceAndType(device.getId(), rule.getSensorType());
+        if (latest == null) {
+            return 0;
+        }
+
+        if (!isThresholdExceeded(latest.getValue(), rule.getRuleCondition())) {
+            return 0;
+        }
+
+        if (alertMapper.countRecentUnhandledAlerts(device.getDeviceid(), rule.getRuleName()) > 0) {
+            return 0;
+        }
+
+        Alert alert = buildSensorAlert(device, rule, latest.getValue());
+        alertMapper.insertAlert(alert);
+        logger.warn("Alert triggered: rule={}, device={}, value={}{} condition={}",
+                rule.getRuleName(), device.getDevicename(), latest.getValue(),
+                getSensorUnit(rule.getSensorType()), rule.getRuleCondition());
+        return 1;
+    }
+
+    private int checkDeviceOffline(AlertRule rule, SensorDevice device) {
+        if (rule == null || device.getTimestamp() == null || device.getDatareportinterval() == null) {
+            return 0;
+        }
+
+        long secondsSinceLastReport = ChronoUnit.SECONDS.between(device.getTimestamp(), LocalDateTime.now());
+        long offlineThreshold = (long) device.getDatareportinterval() * 3;
+        if (secondsSinceLastReport <= offlineThreshold) {
+            return 0;
+        }
+
+        if (alertMapper.countRecentUnhandledAlerts(device.getDeviceid(), ALERT_DEVICE_OFFLINE) > 0) {
+            return 0;
+        }
+
+        Alert alert = buildOfflineAlert(device, rule, secondsSinceLastReport);
+        alertMapper.insertAlert(alert);
+        logger.warn("Device offline: device={}, elapsed={}s threshold={}s",
+                device.getDevicename(), secondsSinceLastReport, offlineThreshold);
+        return 1;
+    }
+
+    private AlertRule resolveRule(Integer locationId, String sensorType,
+                                  Map<Integer, Map<String, AlertRule>> roomRules,
+                                  Map<String, AlertRule> globalRules) {
+        Map<String, AlertRule> scopedRules = roomRules.get(locationId);
+        if (scopedRules != null && scopedRules.containsKey(sensorType)) {
+            return scopedRules.get(sensorType);
+        }
+        return globalRules.get(sensorType);
+    }
 
     private Alert buildSensorAlert(SensorDevice device, AlertRule rule, float value) {
         String unit = getSensorUnit(rule.getSensorType());
         String condition = rule.getRuleCondition().trim();
-        String message = String.format("设备【%s】的%s为 %.1f%s，触发规则：%s %s",
-                device.getDevicename(), rule.getSensorType(), value, unit,
-                rule.getSensorType(), condition);
+        String message = String.format("\u8bbe\u5907\u3010%s\u3011\u7684%s\u4e3a %.1f%s\uff0c\u89e6\u53d1\u89c4\u5219\uff1a%s %s",
+                device.getDevicename(), rule.getSensorType(), value, unit, rule.getSensorType(), condition);
 
         Alert alert = new Alert();
         alert.setDeviceId(device.getDeviceid());
@@ -149,14 +179,14 @@ public class AlertCheckScheduler {
 
     private Alert buildOfflineAlert(SensorDevice device, AlertRule rule, long secondsSinceLastReport) {
         long minutes = secondsSinceLastReport / 60;
-        String message = String.format("设备【%s】已超过 %d 分钟未上报数据（上报间隔：%d 秒）",
+        String message = String.format("\u8bbe\u5907\u3010%s\u3011\u5df2\u8d85\u8fc7 %d \u5206\u949f\u672a\u4e0a\u62a5\u6570\u636e\uff08\u4e0a\u62a5\u95f4\u9694\uff1a%d \u79d2\uff09",
                 device.getDevicename(), minutes, device.getDatareportinterval());
 
         Alert alert = new Alert();
         alert.setDeviceId(device.getDeviceid());
         alert.setLocationId(device.getLocationid());
         alert.setRuleId(rule.getId());
-        alert.setAlertType("设备离线");
+        alert.setAlertType(rule.getRuleName());
         alert.setSeverity(rule.getSeverity());
         alert.setMessage(message);
         alert.setTimestamp(LocalDateTime.now());
@@ -164,39 +194,40 @@ public class AlertCheckScheduler {
         return alert;
     }
 
-    // ===== 工具方法 =====
-
-    /**
-     * 解析规则条件并判断是否超阈值
-     * 支持格式："> 28" / "< 10" / ">= 30" / "<= 25"
-     */
     private boolean isThresholdExceeded(float value, String condition) {
-        condition = condition.trim();
+        String normalized = condition.trim();
         try {
-            if (condition.startsWith(">= ")) {
-                return value >= Double.parseDouble(condition.substring(3));
-            } else if (condition.startsWith("<= ")) {
-                return value <= Double.parseDouble(condition.substring(3));
-            } else if (condition.startsWith("> ")) {
-                return value > Double.parseDouble(condition.substring(2));
-            } else if (condition.startsWith("< ")) {
-                return value < Double.parseDouble(condition.substring(2));
+            if (normalized.startsWith(">=")) {
+                return value >= Double.parseDouble(normalized.substring(2).trim());
+            }
+            if (normalized.startsWith("<=")) {
+                return value <= Double.parseDouble(normalized.substring(2).trim());
+            }
+            if (normalized.startsWith(">")) {
+                return value > Double.parseDouble(normalized.substring(1).trim());
+            }
+            if (normalized.startsWith("<")) {
+                return value < Double.parseDouble(normalized.substring(1).trim());
             }
         } catch (NumberFormatException e) {
-            logger.error("告警规则条件解析失败: '{}', 跳过该规则", condition);
+            logger.error("Failed to parse rule condition: {}", condition, e);
         }
         return false;
     }
 
     private String getSensorUnit(String sensorType) {
         switch (sensorType) {
-            case "温度": return "°C";
-            case "湿度":
-            case "CPU使用率":
-            case "内存使用率":
-            case "磁盘使用率": return "%";
-            case "CO2": return "ppm";
-            default: return "";
+            case SENSOR_TEMPERATURE:
+                return "\u00b0C";
+            case SENSOR_HUMIDITY:
+            case SENSOR_CPU:
+            case SENSOR_MEMORY:
+            case SENSOR_DISK:
+                return "%";
+            case "CO2":
+                return "ppm";
+            default:
+                return "";
         }
     }
 }

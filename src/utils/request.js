@@ -1,10 +1,11 @@
 import axios from 'axios'
-import { mockRequest } from '../mock/index.js'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+  || `${window.location.protocol}//${window.location.hostname || 'localhost'}:8080`
 
 const http = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: apiBaseUrl,
   timeout: 5000,
   paramsSerializer: {
     encode: (params) => {
@@ -29,7 +30,7 @@ http.interceptors.request.use(
 http.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && error.config?.url !== '/login') {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('isLoggedIn')
@@ -39,31 +40,27 @@ http.interceptors.response.use(
   }
 )
 
-function normalizeConfig(dataOrConfig, maybeConfig) {
-  if (maybeConfig !== undefined) {
-    return { ...(maybeConfig || {}), data: dataOrConfig }
-  }
-  return dataOrConfig || {}
-}
-
 const request = {
   async get(url, config = {}) {
     if (useMock) {
+      const { mockRequest } = await import('../mock/index.js')
       return mockRequest('get', url, config)
     }
     return http.get(url, config)
   },
 
-  async post(url, dataOrConfig = {}, maybeConfig) {
-    const config = normalizeConfig(dataOrConfig, maybeConfig)
+  async post(url, data = null, config = {}) {
+    const requestConfig = { ...(config || {}), data }
     if (useMock) {
-      return mockRequest('post', url, config)
+      const { mockRequest } = await import('../mock/index.js')
+      return mockRequest('post', url, requestConfig)
     }
-    return http.post(url, config.data, config)
+    return http.post(url, data, config)
   },
 
   async delete(url, config = {}) {
     if (useMock) {
+      const { mockRequest } = await import('../mock/index.js')
       return mockRequest('delete', url, config)
     }
     return http.delete(url, config)

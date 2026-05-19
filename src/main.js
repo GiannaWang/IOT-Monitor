@@ -9,34 +9,49 @@ import Dashboard from './components/Dashboard.vue'
 import DeviceManager from './components/DeviceManager.vue'
 import DataAnalysis from './components/DataAnalysis.vue'
 import Alarmcentre from './components/Alarmcentre.vue'
-import LogIn from './components/LogIn.vue'  
+import LogIn from './components/LogIn.vue'
 import Admin from './components/Admin.vue'
+import userService from './utils/userService'
 
-// 定义路由
 const routes = [
-  { path: '/', redirect: '/dashboard' }, // 默认路由重定向到首页
-  { path: '/dashboard', component: Dashboard },
-  { path: '/device-manager', component: DeviceManager },
-  { path: '/data-analysis', component: DataAnalysis },
-  { path: '/alarmcentre', component: Alarmcentre },
-  { path: '/login', component: LogIn },
-  { path: '/admin', component: Admin, meta: { requiresAuth: true } } // 需要登录权限
+  { path: '/', redirect: '/dashboard' },
+  { path: '/login', component: LogIn, meta: { guestOnly: true } },
+  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
+  { path: '/device-manager', component: DeviceManager, meta: { requiresAuth: true } },
+  { path: '/data-analysis', component: DataAnalysis, meta: { requiresAuth: true } },
+  { path: '/alarmcentre', component: Alarmcentre, meta: { requiresAuth: true } },
+  { path: '/admin', component: Admin, meta: { requiresAuth: true } }
 ]
 
-// 创建路由实例并传递 `routes` 配置
 const router = createRouter({
   history: createWebHistory(),
   routes
 })
 
-// 全局导航守卫：有 token 视为已登录
-router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('token')
-    token ? next() : next({ path: '/login' })
-  } else {
-    next()
+router.beforeEach(async (to, from, next) => {
+  const hasToken = userService.isLoggedIn()
+
+  if (to.meta.requiresAuth && !hasToken) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
   }
+
+  if (to.meta.guestOnly && hasToken) {
+    next({ path: '/dashboard' })
+    return
+  }
+
+  if (hasToken && !userService.getStoredUser()) {
+    try {
+      await userService.fetchCurrentUser()
+    } catch (error) {
+      userService.clearAuth()
+      next({ path: '/login' })
+      return
+    }
+  }
+
+  next()
 })
 
 createApp(App)

@@ -4,7 +4,6 @@
       <div class="top-bar">
         <h2>物联网监测系统 / 首页仪表盘</h2>
         <div class="top-bar-info">
-          <span>{{ currentTime }}</span>
           <img 
             :src="selectedAvatar" 
             alt="头像"
@@ -122,9 +121,12 @@ const Refresh = async () => {
 
 
 // 刷新按钮点击处理函数
-const handleRefresh = async () => {
+const handleRefresh = async (options = {}) => {
+  const { silent = false, showLoading = true } = options
   try {
-    showLoadingMessage();
+    if (showLoading) {
+      showLoadingMessage()
+    }
     const alerts = await alertService.getLatest5Alerts();
 
     if (alerts && Array.isArray(alerts)) {
@@ -141,10 +143,14 @@ const handleRefresh = async () => {
     chartDataHum.value = await dataService.get10SensorDataByType('湿度');
     updateChart();
     //window.location.reload();
-    ElMessage.success('刷新成功');
+    if (!silent) {
+      ElMessage.success('刷新成功');
+    }
   } catch (error) {
     console.error('刷新页面失败:', error);
-    ElMessage.error('刷新页面失败，请稍后重试');
+    if (!silent) {
+      ElMessage.error('刷新页面失败，请稍后重试');
+    }
   }
 }
 
@@ -232,9 +238,7 @@ const showLoadingMessage = () => {
 
 onMounted(() => {
   // 初始化时间
-  updateTime()
   // 每秒更新时间
-  setInterval(updateTime, 1000)
   // 刷新数据
   Refresh()
   // 初始化图表
@@ -274,6 +278,8 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     myChart.resize()
   })
+
+  handleRefresh({ silent: true, showLoading: false })
 })
 
 </script>
